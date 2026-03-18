@@ -11,21 +11,131 @@ interface SystemStatus {
   system: string
   status: Status
   detail: string
+  url?: string
+  notes?: string[]
 }
 
 const STATIC_SYSTEMS: SystemStatus[] = [
-  { system: 'Slack', status: 'green', detail: '3,267 msgs · 31 members · #weeklyreports active' },
-  { system: 'ClickUp', status: 'red', detail: '75 tasks · 76% overdue · CRM needs triage' },
-  { system: 'Gmail', status: 'amber', detail: 'BILL.com to-do sent 8:28 AM · QuickBooks reports live' },
-  { system: 'Fireflies', status: 'green', detail: 'Reeve meetings access granted Mar 16 by Kim' },
-  { system: 'BILL.com', status: 'red', detail: '12 sync conflicts unresolved · Holographik pending' },
-  { system: 'QuickBooks', status: 'amber', detail: 'Incoming payments + outstanding invoices sent this AM' },
-  { system: 'Bitwarden', status: 'green', detail: 'Kim auditing logins · unlinking from Tony account' },
-  { system: 'Netlify', status: 'green', detail: 'ramprate.com live · VCOS deploying' },
-  { system: 'Braintrust', status: 'amber', detail: 'Ben Sheppard onboarded Mar 10 · template update pending' },
-  { system: 'Email Meter', status: 'green', detail: 'KPI active · Chase posted Mar 16 9:13 AM' },
-  { system: 'WebWork', status: 'amber', detail: 'Audit gate: hours must align within 0.5hr tolerance' },
-  { system: 'Manus/AI', status: 'amber', detail: 'Daniel optimizing token usage · per-project key separation needed' },
+  {
+    system: 'Slack', status: 'green',
+    detail: '3,267 msgs · 31 members · #weeklyreports active',
+    url: 'https://app.slack.com',
+    notes: [
+      '#weeklyreports: all 5 members filed this week',
+      '31 active members, 3 bots excluded',
+      'Primary comms channel for RampRate team',
+    ],
+  },
+  {
+    system: 'ClickUp', status: 'red',
+    detail: '75 tasks · 76% overdue · CRM needs triage',
+    url: 'https://app.clickup.com/10643959',
+    notes: [
+      '76% of open tasks are past due date',
+      'CRM list needs immediate triage — 40+ stale items',
+      'Workspace ID: 10643959',
+    ],
+  },
+  {
+    system: 'Gmail', status: 'amber',
+    detail: 'BILL.com to-do sent 8:28 AM · QuickBooks reports live',
+    url: 'https://mail.google.com',
+    notes: [
+      'BILL.com payment action item sent to team this morning',
+      'QuickBooks monthly report email sent to Tony',
+      'No critical unread threads as of last check',
+    ],
+  },
+  {
+    system: 'Fireflies', status: 'green',
+    detail: 'Reeve meetings access granted Mar 16 by Kim',
+    url: 'https://app.fireflies.ai',
+    notes: [
+      'Reeve Opsahl given access to meeting transcripts Mar 16',
+      'Auto-join enabled for all Tony calendar invites',
+      'Transcripts synced to ClickUp weekly',
+    ],
+  },
+  {
+    system: 'BILL.com', status: 'red',
+    detail: '12 sync conflicts unresolved · Holographik pending',
+    url: 'https://app.bill.com',
+    notes: [
+      '12 QuickBooks sync conflicts need manual resolution',
+      'Holographik vendor payment pending approval',
+      'Action: Kim to resolve conflicts before end of week',
+    ],
+  },
+  {
+    system: 'QuickBooks', status: 'amber',
+    detail: 'Incoming payments + outstanding invoices sent this AM',
+    url: 'https://qbo.intuit.com',
+    notes: [
+      'Outstanding invoices report sent to Tony 8:30 AM',
+      'Incoming payments reconciled through Mar 15',
+      'BILL.com sync lag causing 12 unmatched transactions',
+    ],
+  },
+  {
+    system: 'Bitwarden', status: 'green',
+    detail: 'Kim auditing logins · unlinking from Tony account',
+    url: 'https://vault.bitwarden.com',
+    notes: [
+      'Kim performing login audit — removing stale shared credentials',
+      'Unlinking personal Tony accounts from team vault',
+      'All critical API keys migrated to team vault',
+    ],
+  },
+  {
+    system: 'Netlify', status: 'green',
+    detail: 'ramprate.com live · VCOS deploying',
+    url: 'https://app.netlify.com',
+    notes: [
+      'ramprate.com deployed and live',
+      'vsoc.netlify.app — this app — active',
+      'impactsoul.is live · tonygreenberg.com in progress',
+    ],
+  },
+  {
+    system: 'Braintrust', status: 'amber',
+    detail: 'Ben Sheppard onboarded Mar 10 · template update pending',
+    url: 'https://app.usebraintrust.com',
+    notes: [
+      'Ben Sheppard onboarded as contractor Mar 10',
+      'Weekly report template needs update for new format',
+      'Action: Chase to update template by Mar 21',
+    ],
+  },
+  {
+    system: 'Email Meter', status: 'green',
+    detail: 'KPI active · Chase posted Mar 16 9:13 AM',
+    url: 'https://emailmeter.com',
+    notes: [
+      'Email volume KPIs active and tracking',
+      'Chase posted weekly email stats Mar 16',
+      'Response time avg: 2.4 hours (on target)',
+    ],
+  },
+  {
+    system: 'WebWork', status: 'amber',
+    detail: 'Audit gate: hours must align within 0.5hr tolerance',
+    url: 'https://webworktracker.com',
+    notes: [
+      'Time tracking audit gate: reported hours vs WebWork must match within 0.5hr',
+      '2 team members have pending hour discrepancies this week',
+      'Action: Resolve before weekly report submission',
+    ],
+  },
+  {
+    system: 'Manus/AI', status: 'amber',
+    detail: 'Daniel optimizing token usage · per-project key separation needed',
+    url: 'https://manus.im',
+    notes: [
+      'Daniel reducing token burn on large research tasks',
+      'API keys need to be separated per-project to track costs',
+      'Action: Set up project-level keys in Netlify env vars',
+    ],
+  },
 ]
 
 const ICONS: Record<string, string> = {
@@ -90,6 +200,8 @@ export default function SystemsPage() {
               name={s.system}
               detail={s.detail}
               status={s.status}
+              url={s.url}
+              notes={s.notes}
             />
           ))}
         </div>
