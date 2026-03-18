@@ -1,0 +1,1823 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+    />
+    <title>Visual Chief of Staff · RampRate / ImpactSoul · B&W</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Cabinet+Grotesk:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --sand: #ffffff;
+        --sand2: #f0f0f0;
+        --sand3: #e0e0e0;
+        --ink: #000000;
+        --ink2: #111111;
+        --ink3: #444444;
+        --ink4: #888888;
+        --saffron: #000000;
+        --cobalt: #000000;
+        --terra: #000000;
+        --green: #111111;
+        --amber: #333333;
+        --purple: #111111;
+        --white: #ffffff;
+        --border: rgba(0, 0, 0, 0.12);
+        --border2: rgba(0, 0, 0, 0.06);
+        --sh: 0 2px 16px rgba(0, 0, 0, 0.08);
+        --sh2: 0 8px 40px rgba(0, 0, 0, 0.16);
+        --r: 0px;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--sand);
+        color: var(--ink);
+        font-family: "Cabinet Grotesk", sans-serif;
+        font-size: 16px;
+        line-height: 1.75;
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* ── TOPBAR ── */
+      .topbar {
+        background: var(--ink);
+        color: var(--sand);
+        padding: 0 20px;
+        height: 54px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        border-bottom: 2px solid #000;
+      }
+      .tb-brand {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 20px;
+        font-weight: 400;
+        letter-spacing: 0.12em;
+      }
+      .tb-brand span {
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .tb-right {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      }
+      .tb-clock {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.75);
+      }
+      .tb-date {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .live-pill {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 0px;
+        padding: 3px 10px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #ffffff;
+      }
+      .live-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ffffff;
+        animation: pulse 1.8s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.2;
+        }
+      }
+
+      /* ── NAV TABS ── */
+      .nav-tabs {
+        background: #000000;
+        display: flex;
+        overflow-x: auto;
+        scrollbar-width: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        position: sticky;
+        top: 54px;
+        z-index: 190;
+      }
+      .nav-tabs::-webkit-scrollbar {
+        display: none;
+      }
+      .tab {
+        flex-shrink: 0;
+        padding: 12px 18px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.4);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+        white-space: nowrap;
+      }
+      .tab:hover {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      .tab.active {
+        color: #ffffff;
+        border-bottom-color: #ffffff;
+      }
+
+      /* ── PANELS ── */
+      .panel {
+        display: none;
+        padding: 20px;
+        max-width: 900px;
+        margin: 0 auto;
+        padding-bottom: 80px;
+      }
+      .panel.active {
+        display: block;
+        animation: fadeIn 0.2s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      /* ── SECTION LABELS ── */
+      .slbl {
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: #222222;
+        font-weight: 800;
+        margin: 24px 0 10px;
+      }
+      .slbl:first-child {
+        margin-top: 0;
+      }
+
+      /* ── CARDS ── */
+      .card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        overflow: hidden;
+        margin-bottom: 12px;
+        box-shadow: var(--sh);
+      }
+      .card-hd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 18px;
+        border-bottom: 2px solid #000000;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .card-ti {
+        font-family: "Fraunces", serif;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .card-body {
+        padding: 16px 18px;
+      }
+
+      /* ── BADGES ── */
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        padding: 3px 8px;
+        border-radius: 3px;
+      }
+      .b-red {
+        background: #000000;
+        color: #ffffff;
+      }
+      .b-green {
+        background: #111111;
+        color: #ffffff;
+      }
+      .b-amber {
+        background: #555555;
+        color: #ffffff;
+      }
+      .b-cobalt {
+        background: #222222;
+        color: #ffffff;
+      }
+      .b-purple {
+        background: #333333;
+        color: #ffffff;
+      }
+      .b-ink {
+        background: rgba(0, 0, 0, 0.07);
+        color: #000000;
+        border: 1px solid #ccc;
+      }
+
+      /* ── STATUS GRID ── */
+      .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .stat-box {
+        background: #f8f8f8;
+        border-radius: 0px;
+        padding: 13px 15px;
+        border: 1px solid #cccccc;
+        border-top: 3px solid #000000;
+      }
+      .stat-n {
+        font-family: "Fraunces", serif;
+        font-size: 28px;
+        font-weight: 900;
+        line-height: 1;
+      }
+      .stat-l {
+        font-size: 10px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        color: #222222;
+        margin-top: 3px;
+      }
+      .stat-s {
+        font-size: 12px;
+        color: #333333;
+        margin-top: 2px;
+      }
+
+      /* ── MEMBER CARDS ── */
+      .member-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+      }
+      .member-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--r);
+        overflow: hidden;
+        box-shadow: var(--sh);
+      }
+      .member-card-hd {
+        padding: 14px 16px 10px;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--border2);
+      }
+      .member-name {
+        font-family: "Fraunces", serif;
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .member-role {
+        font-size: 11px;
+        color: #333333;
+        margin-top: 1px;
+        font-weight: 600;
+      }
+      .member-body {
+        padding: 14px 16px;
+      }
+
+      /* ── INPUT FIELDS ── */
+      .field-group {
+        margin-bottom: 12px;
+      }
+      .field-label {
+        font-size: 11px;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: #222222;
+        margin-bottom: 4px;
+        display: block;
+      }
+      .field-input {
+        width: 100%;
+        padding: 9px 12px;
+        background: var(--sand);
+        border: 1.5px solid #aaaaaa;
+        border-radius: 0px;
+        font-family: "Cabinet Grotesk", sans-serif;
+        font-size: 14px;
+        color: var(--ink);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .field-input:focus {
+        border-color: #000000;
+        border-width: 2px;
+        background: var(--white);
+      }
+      .field-input::placeholder {
+        color: #666666;
+      }
+      .field-url {
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 12px;
+      }
+
+      /* ── CHECKBOX ROW ── */
+      .check-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--border2);
+      }
+      .check-row:last-child {
+        border-bottom: none;
+      }
+      .check-box {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 2px solid #999999;
+        background: var(--sand);
+        cursor: pointer;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.12s;
+      }
+      .check-box.checked {
+        background: #000000;
+        border-color: #000000;
+      }
+      .check-box.checked::after {
+        content: "✓";
+        font-size: 12px;
+        color: #fff;
+        font-weight: 900;
+      }
+      .check-label {
+        font-size: 14px;
+        flex: 1;
+      }
+      .check-label.done {
+        text-decoration: line-through;
+        color: #666666;
+      }
+
+      /* ── SUBMIT BTN ── */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 11px 20px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-family: "Cabinet Grotesk", sans-serif;
+        font-size: 14px;
+        font-weight: 800;
+        transition: all 0.12s;
+        letter-spacing: 0.02em;
+      }
+      .btn-primary {
+        background: #000000;
+        color: #ffffff;
+        width: 100%;
+        justify-content: center;
+      }
+      .btn-primary:hover {
+        background: #333333;
+      }
+      .btn-secondary {
+        background: transparent;
+        color: #000000;
+        border: 1.5px solid #888888;
+      }
+      .btn-secondary:hover {
+        background: var(--sand2);
+      }
+      .btn-sm {
+        padding: 7px 12px;
+        font-size: 12px;
+      }
+
+      /* ── COMPLIANCE TABLE ── */
+      .comp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .comp-table th {
+        text-align: left;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #111111;
+        padding: 8px 12px;
+        border-bottom: 2px solid var(--border);
+        background: #e8e8e8;
+      }
+      .comp-table td {
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--border2);
+        vertical-align: middle;
+      }
+      .comp-table tr:last-child td {
+        border-bottom: none;
+      }
+      .comp-table tr:hover td {
+        background: rgba(26, 16, 8, 0.02);
+      }
+
+      /* ── STATUS INDICATORS ── */
+      .si {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .si-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .si-red .si-dot {
+        background: #000000;
+        border: 2px solid #000;
+      }
+      .si-green .si-dot {
+        background: #000000;
+      }
+      .si-amber .si-dot {
+        background: #888888;
+      }
+
+      /* ── ALERT BOXES ── */
+      .alert {
+        border-left: 3px solid;
+        padding: 11px 14px;
+        border-radius: 3px;
+        font-size: 13px;
+        line-height: 1.65;
+        margin-bottom: 10px;
+      }
+      .alert-red {
+        border-color: #000000;
+        background: rgba(0, 0, 0, 0.04);
+        color: #000000;
+      }
+      .alert-green {
+        border-color: #333333;
+        background: #f5f5f5;
+        color: #000000;
+      }
+      .alert-amber {
+        border-color: #555555;
+        background: #f5f5f5;
+        color: #000000;
+      }
+      .alert-cobalt {
+        border-color: #000000;
+        background: rgba(0, 0, 0, 0.04);
+      }
+
+      /* ── PROGRESS BAR ── */
+      .prog-wrap {
+        background: #d0d0d0;
+        border-radius: 0px;
+        height: 5px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .prog-bar {
+        height: 100%;
+        border-radius: 0px;
+        transition: width 0.5s ease;
+      }
+
+      /* ── TOAST ── */
+      .toast {
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(80px);
+        background: #000000;
+        color: #ffffff;
+        padding: 12px 24px;
+        border-radius: 0px;
+        font-size: 13px;
+        font-weight: 700;
+        border-left: 3px solid #ffffff;
+        box-shadow: var(--sh2);
+        transition: transform 0.3s ease;
+        z-index: 999;
+        white-space: nowrap;
+      }
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+
+      /* ── MOBILE ── */
+      @media (max-width: 640px) {
+        .panel {
+          padding: 16px 14px 80px;
+        }
+        .member-grid {
+          grid-template-columns: 1fr;
+        }
+        .status-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .topbar {
+          padding: 0 14px;
+        }
+        .tb-date {
+          display: none;
+        }
+      }
+
+      /* ── HOURS INPUT ROW ── */
+      .hours-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border2);
+      }
+      .hours-row:last-child {
+        border-bottom: none;
+      }
+      .hours-name {
+        font-size: 14px;
+        font-weight: 700;
+        flex: 1;
+      }
+      .hours-input {
+        width: 80px;
+        padding: 7px 10px;
+        text-align: center;
+        background: var(--sand);
+        border: 1.5px solid #aaaaaa;
+        border-radius: 0px;
+        font-family: "IBM Plex Mono", monospace;
+        font-size: 14px;
+        color: var(--ink);
+        outline: none;
+        transition: border-color 0.15s;
+      }
+      .hours-input:focus {
+        border-color: #000000;
+        border-width: 2px;
+        background: var(--white);
+      }
+      .hours-unit {
+        font-size: 12px;
+        color: #333333;
+        font-weight: 700;
+        width: 24px;
+      }
+
+      /* ── ACCORDION ── */
+      .acc-hd {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 18px;
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .acc-hd:hover {
+        background: rgba(26, 16, 8, 0.02);
+      }
+      .acc-arrow {
+        font-size: 12px;
+        color: #444444;
+        transition: transform 0.2s;
+      }
+      .acc-hd.open .acc-arrow {
+        transform: rotate(90deg);
+      }
+      .acc-body {
+        display: none;
+        padding: 0 18px 16px;
+      }
+      .acc-body.open {
+        display: block;
+      }
+
+      /* ── SYSTEM STATUS ── */
+      .sys-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--border2);
+      }
+      .sys-row:last-child {
+        border-bottom: none;
+      }
+      .sys-icon {
+        font-size: 18px;
+        flex-shrink: 0;
+        width: 28px;
+        text-align: center;
+      }
+      .sys-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .sys-name {
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .sys-detail {
+        font-size: 12px;
+        color: #333333;
+      }
+      .sys-status {
+        flex-shrink: 0;
+      }
+
+      /* ── WEEK PICKER ── */
+      .week-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: #e8e8e8;
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 5px 12px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--ink2);
+        cursor: pointer;
+      }
+
+      /* ── MODAL ── */
+      .modal-bg {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(26, 16, 8, 0.55);
+        z-index: 500;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .modal-bg.open {
+        display: flex;
+      }
+      .modal {
+        background: var(--white);
+        width: 100%;
+        max-width: 560px;
+        border-radius: var(--r) var(--r) 0 0;
+        padding: 24px 20px 36px;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: slideUp 0.25s ease;
+      }
+      @keyframes slideUp {
+        from {
+          transform: translateY(40px);
+        }
+        to {
+          transform: none;
+        }
+      }
+      .modal-ti {
+        font-family: "Fraunces", serif;
+        font-size: 20px;
+        font-weight: 900;
+        margin-bottom: 16px;
+      }
+      .modal-close {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 20px;
+        cursor: pointer;
+        color: #333333;
+      }
+
+      /* ── SUBMITTED STATE ── */
+      .submitted-banner {
+        background: #f0f0f0;
+        border: 2px solid #000000;
+        border-radius: 0px;
+        padding: 12px 16px;
+        text-align: center;
+        font-size: 13px;
+        font-weight: 700;
+        color: #000000;
+        display: none;
+        margin-bottom: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="tb-brand">RampRate · <span>Visual Chief of Staff</span></div>
+      <div class="tb-right">
+        <div class="tb-date" id="date-lbl"></div>
+        <div class="tb-clock" id="clock-lbl">--:--:--</div>
+        <div class="live-pill"><span class="live-dot"></span> Live</div>
+      </div>
+    </div>
+
+    <!-- NAV TABS -->
+    <div class="nav-tabs">
+      <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+      <div class="tab" onclick="switchTab('submit')">Submit Report</div>
+      <div class="tab" onclick="switchTab('compliance')">Compliance</div>
+      <div class="tab" onclick="switchTab('systems')">Systems</div>
+      <div class="tab" onclick="switchTab('openloops')">Open Loops</div>
+    </div>
+
+    <!-- ═══════════════ DASHBOARD ═══════════════ -->
+    <div id="panel-dashboard" class="panel active">
+      <div class="slbl">Command Overview — Week of Mar 16, 2026</div>
+
+      <div class="status-grid">
+        <div class="stat-box">
+          <div class="stat-n" style="color: var(--green)">2</div>
+          <div class="stat-l">Reports Filed</div>
+          <div class="stat-s">Rob · Daniel · Kim</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-n" style="color: var(--terra)">2</div>
+          <div class="stat-l">Missing</div>
+          <div class="stat-s">Alex · Josh</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-n" style="color: var(--amber)">12</div>
+          <div class="stat-l">BILL.com</div>
+          <div class="stat-s">Sync conflicts</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-n" style="color: var(--terra)">76%</div>
+          <div class="stat-l">CRM Overdue</div>
+          <div class="stat-s">57/75 tasks</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-n" style="color: var(--cobalt)">$50K</div>
+          <div class="stat-l">STBL Monthly</div>
+          <div class="stat-s">Target Apr 30</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-n" style="color: var(--green)">100%</div>
+          <div class="stat-l">ramprate.com</div>
+          <div class="stat-s">Migration done</div>
+        </div>
+      </div>
+
+      <div class="slbl">Today's Critical Items</div>
+
+      <div class="alert alert-red">
+        <strong>Alex + Josh:</strong> Weekly reports not filed as of 10 AM.
+        Required by EOD today.
+      </div>
+      <div class="alert alert-red">
+        <strong>BILL.com:</strong> 12 sync conflicts + Holographik invoice
+        pending. Kim to resolve today.
+      </div>
+      <div class="alert alert-amber">
+        <strong>Braintrust template:</strong> 4-point checklist not integrated.
+        Kim due Mar 18. Task:
+        <a
+          href="https://app.clickup.com/t/868hwv6u4"
+          target="_blank"
+          style="color: var(--cobalt)"
+          >868hwv6u4</a
+        >
+      </div>
+      <div class="alert alert-cobalt">
+        <strong>Reeve — 2 PM today:</strong> Flipped ownership model review.
+        Alex Bolt package needed before call.
+      </div>
+
+      <div class="slbl">Team Flow This Week</div>
+      <div class="card">
+        <div class="card-body">
+          <div id="flow-rows"></div>
+        </div>
+      </div>
+
+      <div class="slbl">OKR Pulse</div>
+      <div class="card">
+        <div class="card-body" id="okr-rows"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ SUBMIT REPORT ═══════════════ -->
+    <div id="panel-submit" class="panel">
+      <div class="slbl">Weekly Report Submission</div>
+      <div class="alert alert-amber">
+        All fields required for payroll to process. No dollar amounts — hours
+        only.
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ti">Your Information</div>
+        </div>
+        <div class="card-body">
+          <div class="field-group">
+            <label class="field-label">Your Name</label>
+            <select class="field-input" id="f-name">
+              <option value="">— Select —</option>
+              <option>Rob Holmes</option>
+              <option>Alex Veytsel</option>
+              <option>Josh Bykowski</option>
+              <option>Kimberly / Chase</option>
+              <option>Daniel Baez</option>
+              <option>Ben Sheppard</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Report Week</label>
+            <input
+              class="field-input"
+              id="f-week"
+              type="text"
+              value="Mar 9–16, 2026"
+              placeholder="e.g. Mar 9–16, 2026"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-ti">Business Outcomes</div></div>
+        <div class="card-body">
+          <div class="field-group">
+            <label class="field-label"
+              >1. What business outcomes did you drive this week?</label
+            >
+            <textarea
+              class="field-input"
+              id="f-outcomes"
+              rows="4"
+              placeholder="Deals advanced, deliverables shipped, relationships nurtured..."
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label"
+              >2. Did you accomplish your top goals from last week? If not, why
+              not?</label
+            >
+            <textarea
+              class="field-input"
+              id="f-goals"
+              rows="3"
+              placeholder="Yes / No — with explanation..."
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label"
+              >3. Deals Closed / Verbaled / Accomplished</label
+            >
+            <textarea
+              class="field-input"
+              id="f-deals"
+              rows="2"
+              placeholder="Any signed agreements, verbal commitments, milestones..."
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">4. Key Relationships Nurtured</label>
+            <textarea
+              class="field-input"
+              id="f-relationships"
+              rows="2"
+              placeholder="Names and context..."
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label"
+              >5. Top 3–5 Priorities for Next Week</label
+            >
+            <textarea
+              class="field-input"
+              id="f-priorities"
+              rows="3"
+              placeholder="Be specific and measurable..."
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">6. Help Needed / Blockers</label>
+            <textarea
+              class="field-input"
+              id="f-blockers"
+              rows="2"
+              placeholder="What do you need from Tony, Alex, Kim?"
+            ></textarea>
+          </div>
+          <div class="field-group">
+            <label class="field-label">7. Win of the Week</label>
+            <input
+              class="field-input"
+              id="f-win"
+              type="text"
+              placeholder="One sentence..."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ti">Braintrust Compliance</div>
+          <span class="badge b-red">Required for Payroll</span>
+        </div>
+        <div class="card-body">
+          <div class="check-row" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-label">
+              Braintrust invoice submitted this period?
+            </div>
+          </div>
+          <div class="field-group" style="padding-left: 30px; margin-top: 4px">
+            <input
+              class="field-input field-url"
+              id="f-bt-link"
+              type="url"
+              placeholder="Paste Braintrust invoice URL..."
+            />
+          </div>
+
+          <div class="check-row" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-label">
+              WebWork screenshots cover full work period?
+            </div>
+          </div>
+          <div class="field-group" style="padding-left: 30px; margin-top: 4px">
+            <input
+              class="field-input field-url"
+              id="f-ww-link"
+              type="url"
+              placeholder="Paste WebWork screenshot link or folder URL..."
+            />
+          </div>
+
+          <div class="check-row" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-label">
+              Email Meter report submitted for this week?
+            </div>
+          </div>
+          <div class="field-group" style="padding-left: 30px; margin-top: 4px">
+            <input
+              class="field-input field-url"
+              id="f-em-link"
+              type="url"
+              placeholder="Paste Email Meter report link..."
+            />
+          </div>
+
+          <div class="check-row" onclick="toggleCheck(this)">
+            <div class="check-box"></div>
+            <div class="check-label">
+              Slack weekly report posted and linked in #weeklyreports?
+            </div>
+          </div>
+          <div class="field-group" style="padding-left: 30px; margin-top: 4px">
+            <input
+              class="field-input field-url"
+              id="f-sl-link"
+              type="url"
+              placeholder="Paste Slack message permalink..."
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ti">Hours Billed This Period</div>
+          <span class="badge b-ink">No dollar amounts</span>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-amber" style="margin-bottom: 14px">
+            Hours only. Must match WebWork within 0.5hr tolerance. Do not
+            include rates or dollar amounts.
+          </div>
+          <div id="hours-rows">
+            <div class="hours-row">
+              <div class="hours-name">Rob Holmes</div>
+              <input
+                class="hours-input"
+                type="number"
+                min="0"
+                max="200"
+                step="0.5"
+                placeholder="0"
+              />
+              <div class="hours-unit">hrs</div>
+            </div>
+            <div class="hours-row">
+              <div class="hours-name">Alex Veytsel</div>
+              <input
+                class="hours-input"
+                type="number"
+                min="0"
+                max="200"
+                step="0.5"
+                placeholder="0"
+              />
+              <div class="hours-unit">hrs</div>
+            </div>
+            <div class="hours-row">
+              <div class="hours-name">Josh Bykowski</div>
+              <input
+                class="hours-input"
+                type="number"
+                min="0"
+                max="200"
+                step="0.5"
+                placeholder="0"
+              />
+              <div class="hours-unit">hrs</div>
+            </div>
+            <div class="hours-row">
+              <div class="hours-name">Ben Sheppard</div>
+              <input
+                class="hours-input"
+                type="number"
+                min="0"
+                max="200"
+                step="0.5"
+                placeholder="0"
+              />
+              <div class="hours-unit">hrs</div>
+            </div>
+            <div class="hours-row">
+              <div class="hours-name">Daniel Baez</div>
+              <input
+                class="hours-input"
+                type="number"
+                min="0"
+                max="200"
+                step="0.5"
+                placeholder="0"
+              />
+              <div class="hours-unit">hrs</div>
+            </div>
+            <div class="hours-row">
+              <div class="hours-name">Kim / Chase</div>
+              <input
+                class="hours-input"
+                type="number"
+                min="0"
+                max="200"
+                step="0.5"
+                placeholder="0"
+              />
+              <div class="hours-unit">hrs</div>
+            </div>
+          </div>
+          <div
+            style="
+              margin-top: 12px;
+              padding-top: 12px;
+              border-top: 1px solid var(--border2);
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
+            <div
+              style="
+                font-size: 12px;
+                color: var(--ink3);
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+              "
+            >
+              Total Hours
+            </div>
+            <div
+              style="
+                font-family: &quot;Fraunces&quot;, serif;
+                font-size: 22px;
+                font-weight: 900;
+              "
+              id="total-hours"
+            >
+              0 hrs
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="submitted-banner" id="submit-banner">
+        ✓ Report submitted successfully — Alex notified for approval
+      </div>
+      <button class="btn btn-primary" onclick="submitReport()">
+        Submit Weekly Report
+      </button>
+    </div>
+
+    <!-- ═══════════════ COMPLIANCE ═══════════════ -->
+    <div id="panel-compliance" class="panel">
+      <div class="slbl">
+        11-Week Compliance Scorecard — Jan 5 to Mar 16, 2026
+      </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ti">Weekly Report Filing Rate</div>
+          <span class="badge b-ink">11 weeks tracked</span>
+        </div>
+        <div class="card-body" style="padding: 0">
+          <table class="comp-table" style="width: 100%">
+            <thead>
+              <tr>
+                <th>Team Member</th>
+                <th>Role</th>
+                <th>Rate</th>
+                <th>This Week</th>
+                <th>Braintrust</th>
+              </tr>
+            </thead>
+            <tbody id="compliance-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="slbl">Braintrust 4-Point Gate</div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ti">Payroll Checklist — Current Cycle</div>
+          <span class="badge b-red">Gate Not Yet Active</span>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-amber" style="margin-bottom: 14px">
+            <strong>Effective Mar 23:</strong> All 4 points must pass before
+            Alex approves the UBS money request. Template update due from Kim by
+            Mar 18.
+          </div>
+          <div id="braintrust-checks"></div>
+        </div>
+      </div>
+
+      <div class="slbl">Exception Report</div>
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-ti">Missing This Week</div>
+          <span class="badge b-red">Action Required</span>
+        </div>
+        <div class="card-body" id="exception-body"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ SYSTEMS ═══════════════ -->
+    <div id="panel-systems" class="panel">
+      <div class="slbl">Digital Systems Status — Mar 16, 2026</div>
+
+      <div class="card">
+        <div class="card-body" id="systems-body"></div>
+      </div>
+
+      <div class="slbl">Website Migration Tracker</div>
+      <div class="card">
+        <div class="card-body" id="migration-body"></div>
+      </div>
+
+      <div class="slbl">Communication KPIs</div>
+      <div class="card">
+        <div class="card-body" id="comms-body"></div>
+      </div>
+    </div>
+
+    <!-- ═══════════════ OPEN LOOPS ═══════════════ -->
+    <div id="panel-openloops" class="panel">
+      <div class="slbl">Critical Open Loops — Mar 16, 2026</div>
+      <div class="alert alert-red" style="margin-bottom: 14px">
+        7 items require resolution this week. Click any loop to mark resolved.
+      </div>
+
+      <div id="loops-container"></div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // ══════════════ CLOCK ══════════════
+      function tick() {
+        const n = new Date();
+        const days = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const months = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+        document.getElementById("clock-lbl").textContent =
+          n.getHours().toString().padStart(2, "0") +
+          ":" +
+          n.getMinutes().toString().padStart(2, "0") +
+          ":" +
+          n.getSeconds().toString().padStart(2, "0");
+        document.getElementById("date-lbl").textContent =
+          days[n.getDay()] +
+          " · " +
+          months[n.getMonth()] +
+          " " +
+          n.getDate() +
+          ", 2026";
+      }
+      tick();
+      setInterval(tick, 1000);
+
+      // ══════════════ TAB SWITCHING ══════════════
+      function switchTab(id) {
+        document
+          .querySelectorAll(".panel")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".tab")
+          .forEach((t) => t.classList.remove("active"));
+        document.getElementById("panel-" + id).classList.add("active");
+        event.target.classList.add("active");
+      }
+
+      // ══════════════ TOAST ══════════════
+      function toast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        setTimeout(() => t.classList.remove("show"), 2800);
+      }
+
+      // ══════════════ CHECK TOGGLE ══════════════
+      function toggleCheck(row) {
+        const box = row.querySelector(".check-box");
+        const lbl = row.querySelector(".check-label");
+        box.classList.toggle("checked");
+        lbl.classList.toggle("done");
+      }
+
+      // ══════════════ HOURS TOTAL ══════════════
+      document.querySelectorAll(".hours-input").forEach((inp) => {
+        inp.addEventListener("input", updateTotal);
+      });
+      function updateTotal() {
+        let total = 0;
+        document.querySelectorAll(".hours-input").forEach((inp) => {
+          total += parseFloat(inp.value) || 0;
+        });
+        document.getElementById("total-hours").textContent =
+          total.toFixed(1) + " hrs";
+      }
+
+      // ══════════════ SUBMIT ══════════════
+      function submitReport() {
+        const name = document.getElementById("f-name").value;
+        if (!name) {
+          toast("Please select your name first");
+          return;
+        }
+        const checks = document.querySelectorAll("#panel-submit .check-box");
+        let allChecked = true;
+        checks.forEach((c) => {
+          if (!c.classList.contains("checked")) allChecked = false;
+        });
+        if (!allChecked) {
+          toast("Complete all 4 Braintrust checklist items first");
+          return;
+        }
+        document.getElementById("submit-banner").style.display = "block";
+        toast("✓ Report submitted for " + name);
+        // Reset
+        setTimeout(() => {
+          document.getElementById("f-outcomes").value = "";
+          document.getElementById("f-goals").value = "";
+          document.getElementById("f-deals").value = "";
+          document.getElementById("f-priorities").value = "";
+          document.getElementById("f-blockers").value = "";
+          document.getElementById("f-win").value = "";
+          document
+            .querySelectorAll(".hours-input")
+            .forEach((i) => (i.value = ""));
+          updateTotal();
+        }, 1000);
+      }
+
+      // ══════════════ DATA ══════════════
+      const TEAM = [
+        {
+          name: "Rob Holmes",
+          role: "BD · Grants",
+          rate: 91,
+          filed: true,
+          bt: "Not integrated",
+        },
+        {
+          name: "Alex Veytsel",
+          role: "Equity Partner",
+          rate: 82,
+          filed: false,
+          bt: "Not integrated",
+        },
+        {
+          name: "Josh Bykowski",
+          role: "Legal · BD",
+          rate: 73,
+          filed: false,
+          bt: "Not integrated",
+        },
+        {
+          name: "Kim / Chase",
+          role: "Executive Ops",
+          rate: 100,
+          filed: true,
+          bt: "Narrative only",
+        },
+        {
+          name: "Daniel Baez",
+          role: "Webmaster",
+          rate: 100,
+          filed: true,
+          bt: "N/A (new)",
+        },
+        {
+          name: "Ben Sheppard",
+          role: "ImpactSoul Contractor",
+          rate: 0,
+          filed: false,
+          bt: "First due Mar 23",
+        },
+        {
+          name: "Tony Greenberg",
+          role: "CEO",
+          rate: 0,
+          filed: false,
+          bt: "Not required",
+        },
+      ];
+
+      const FLOW = [
+        { name: "Tony", pct: 88, note: "Vision engine · Protect mornings" },
+        {
+          name: "Kim",
+          pct: 65,
+          note: "Finance chaos resolved → flow improving",
+        },
+        { name: "Josh", pct: 72, note: "Batch legal days Mon/Wed" },
+        { name: "Rob", pct: 55, note: "Needs 4hr grant blocks" },
+        { name: "Alex", pct: 60, note: "Scope clarity = flow" },
+        { name: "Daniel", pct: 75, note: "Migration complete · on track" },
+      ];
+
+      const OKRS = [
+        {
+          id: "OKR01",
+          label: "$5M Revenue",
+          pct: 1,
+          note: "$31K YTD · need $95K/wk",
+        },
+        { id: "OKR02", label: "Pipeline", pct: 38, note: "30 active deals" },
+        {
+          id: "OKR03",
+          label: "Action Close Rate",
+          pct: 11,
+          note: "8/75 · target 90%",
+        },
+        {
+          id: "OKR04",
+          label: "STBL Gatekeepers",
+          pct: 10,
+          note: "From 23K LinkedIn DB",
+        },
+        {
+          id: "OKR05",
+          label: "Accounting Fix",
+          pct: 40,
+          note: "Hiline fired · new search",
+        },
+        {
+          id: "OKR06",
+          label: "Website Migration",
+          pct: 100,
+          note: "ramprate.com DONE ✓",
+        },
+      ];
+
+      const SYSTEMS = [
+        {
+          icon: "📬",
+          name: "Slack",
+          detail: "3,267 msgs · 31 members · #weeklyreports active",
+          status: "green",
+        },
+        {
+          icon: "✅",
+          name: "ClickUp",
+          detail: "75 tasks · 76% overdue · CRM needs triage",
+          status: "red",
+        },
+        {
+          icon: "📧",
+          name: "Gmail",
+          detail: "BILL.com to-do sent 8:28 AM · QuickBooks reports live",
+          status: "amber",
+        },
+        {
+          icon: "🎙",
+          name: "Fireflies",
+          detail: "Reeve meetings access granted Mar 16 by Kim",
+          status: "green",
+        },
+        {
+          icon: "💳",
+          name: "BILL.com",
+          detail: "12 sync conflicts unresolved · Holographik pending",
+          status: "red",
+        },
+        {
+          icon: "📊",
+          name: "QuickBooks",
+          detail: "Incoming payments + outstanding invoices sent this AM",
+          status: "amber",
+        },
+        {
+          icon: "🔐",
+          name: "Bitwarden",
+          detail: "Kim auditing logins · unlinking from Tony account",
+          status: "green",
+        },
+        {
+          icon: "🌐",
+          name: "Netlify",
+          detail: "ramprate.com live · TonyGreenberg.com next (3 days)",
+          status: "green",
+        },
+        {
+          icon: "📝",
+          name: "Braintrust",
+          detail: "Ben Sheppard onboarded Mar 10 · template update pending",
+          status: "amber",
+        },
+        {
+          icon: "📈",
+          name: "Email Meter",
+          detail: "KPI active · Chase posted Mar 16 9:13 AM",
+          status: "green",
+        },
+        {
+          icon: "⏱",
+          name: "WebWork",
+          detail: "Audit gate: hours must align within 0.5hr tolerance",
+          status: "amber",
+        },
+        {
+          icon: "🧠",
+          name: "Manus/AI",
+          detail:
+            "Daniel optimizing token usage · per-project key separation needed",
+          status: "amber",
+        },
+      ];
+
+      const MIGRATION = [
+        {
+          site: "ramprate.com",
+          status: "complete",
+          owner: "Daniel Baez",
+          deadline: "Done ✓",
+          pct: 100,
+        },
+        {
+          site: "tonygreenberg.com",
+          status: "active",
+          owner: "Daniel Baez",
+          deadline: "~3 days",
+          pct: 10,
+        },
+        {
+          site: "tonygreenberg.co",
+          status: "pending",
+          owner: "Webmaster/Chase",
+          deadline: "Mar 21",
+          pct: 5,
+        },
+        {
+          site: "impactsoul.is",
+          status: "complete",
+          owner: "Kim/Chase",
+          deadline: "Live",
+          pct: 100,
+        },
+        {
+          site: "findmyme.com",
+          status: "planned",
+          owner: "Chase",
+          deadline: "Q2 2026",
+          pct: 0,
+        },
+      ];
+
+      const LOOPS = [
+        {
+          id: "L1",
+          p: "critical",
+          owner: "Alex + Tony",
+          due: "Before 2 PM today",
+          text: "ImpactSoul narrative contradiction — Sections 2 vs 11 vs 13 conflict. Must resolve before Reeve call.",
+        },
+        {
+          id: "L2",
+          p: "critical",
+          owner: "Josh",
+          due: "Today EOD",
+          text: "Weekly report not filed. Kim bumped twice re Maxwell Biosciences + Peptoid World emails.",
+        },
+        {
+          id: "L3",
+          p: "critical",
+          owner: "Alex",
+          due: "Today EOD",
+          text: "Weekly report not filed. Reeve workload note needed (40–50% vs 25% proposed).",
+        },
+        {
+          id: "L4",
+          p: "critical",
+          owner: "Kim",
+          due: "Today",
+          text: "BILL.com 12 sync conflicts + Holographik invoice — resolve before EOD.",
+        },
+        {
+          id: "L5",
+          p: "high",
+          owner: "Kim",
+          due: "Mar 18",
+          text: "Update #weeklyreports bot template — add Braintrust 4-point section (questions 14–17).",
+        },
+        {
+          id: "L6",
+          p: "high",
+          owner: "Tony + Ben",
+          due: "This week",
+          text: "Ben Sheppard scope + compensation conversation — explicitly requested by Ben.",
+        },
+        {
+          id: "L7",
+          p: "high",
+          owner: "Tony / Kim",
+          due: "This week",
+          text: "ImpactSoul legal entity formation — no entity = no grants, no Series A.",
+        },
+      ];
+
+      const BT_CHECKS = [
+        "Braintrust invoice submitted with link",
+        "WebWork screenshots cover full work period",
+        "Email Meter report submitted for this week",
+        "Slack weekly report posted and linked",
+        "Hours billed match WebWork within 0.5hr tolerance",
+        "Alex approval confirmed before UBS money request",
+      ];
+
+      // ══════════════ RENDER ══════════════
+      function colorPct(p) {
+        if (p >= 90) return "#000000";
+        if (p >= 70) return "#555555";
+        return "#999999";
+      }
+
+      function renderDashboard() {
+        // Flow
+        const fr = document.getElementById("flow-rows");
+        fr.innerHTML = FLOW.map(
+          (f) => `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <div style="font-size:14px;font-weight:700;">${f.name}</div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:${colorPct(f.pct)};">${f.pct}%</div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" style="width:${f.pct}%;background:${colorPct(f.pct)};"></div></div>
+      <div style="font-size:12px;color:#333333;font-weight:500;margin-top:3px;">${f.note}</div>
+    </div>
+  `,
+        ).join("");
+
+        // OKRs
+        const or = document.getElementById("okr-rows");
+        or.innerHTML = OKRS.map(
+          (o) => `
+    <div style="margin-bottom:14px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+        <div>
+          <span style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.10em;color:var(--ink3);">${o.id}</span>
+          <span style="font-size:14px;font-weight:700;margin-left:8px;">${o.label}</span>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;color:${colorPct(o.pct)};">${o.pct}%</div>
+      </div>
+      <div class="prog-wrap"><div class="prog-bar" style="width:${Math.max(o.pct, 2)}%;background:${colorPct(o.pct)};"></div></div>
+      <div style="font-size:12px;color:#333333;font-weight:500;margin-top:3px;">${o.note}</div>
+    </div>
+  `,
+        ).join("");
+      }
+
+      function renderCompliance() {
+        const tbody = document.getElementById("compliance-tbody");
+        tbody.innerHTML = TEAM.map((m) => {
+          const rateColor =
+            m.rate >= 90
+              ? "var(--green)"
+              : m.rate >= 70
+                ? "var(--amber)"
+                : "var(--terra)";
+          const filedBadge = m.filed
+            ? `<span style="font-size:12px;font-weight:800;font-family:'IBM Plex Mono',monospace;">● FILED</span>`
+            : `<span style="font-size:12px;font-weight:800;font-family:'IBM Plex Mono',monospace;color:#888;">✕ MISSING</span>`;
+          return `<tr>
+      <td style="font-weight:700;">${m.name}</td>
+      <td style="color:var(--ink3);font-size:12px;">${m.role}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-weight:700;color:${rateColor};">${m.rate}%</td>
+      <td>${filedBadge}</td>
+      <td style="font-size:12px;color:var(--ink3);">${m.bt}</td>
+    </tr>`;
+        }).join("");
+
+        // Braintrust checks
+        const bc = document.getElementById("braintrust-checks");
+        bc.innerHTML = BT_CHECKS.map(
+          (c) => `
+    <div class="check-row" onclick="toggleCheck(this)" style="cursor:pointer;">
+      <div class="check-box"></div>
+      <div class="check-label">${c}</div>
+    </div>
+  `,
+        ).join("");
+
+        // Exception body
+        const eb = document.getElementById("exception-body");
+        const missing = TEAM.filter(
+          (m) => !m.filed && m.name !== "Tony Greenberg",
+        );
+        eb.innerHTML =
+          missing
+            .map(
+              (m) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border2);">
+      <div>
+        <div style="font-size:14px;font-weight:700;">${m.name}</div>
+        <div style="font-size:12px;color:var(--ink3);">${m.role}</div>
+      </div>
+      <span class="badge b-red">Missing</span>
+    </div>
+  `,
+            )
+            .join("") +
+          `<div style="margin-top:12px;font-size:12px;color:var(--ink3);">Full exception report: <a href="https://app.clickup.com/10643959/docs/a4ufq-50671" target="_blank" style="color:var(--cobalt);">ClickUp Doc ↗</a></div>`;
+      }
+
+      function renderSystems() {
+        const sb = document.getElementById("systems-body");
+        sb.innerHTML = SYSTEMS.map(
+          (s) => `
+    <div class="sys-row">
+      <div class="sys-icon">${s.icon}</div>
+      <div class="sys-info">
+        <div class="sys-name">${s.name}</div>
+        <div class="sys-detail">${s.detail}</div>
+      </div>
+      <div class="sys-status">
+        <span class="si si-${s.status}">
+          <span class="si-dot"></span>
+          <span style="font-size:11px;font-weight:700;">${s.status === "green" ? "●" : s.status === "red" ? "✕" : "○"}</span>
+        </span>
+      </div>
+    </div>
+  `,
+        ).join("");
+
+        const mb = document.getElementById("migration-body");
+        mb.innerHTML = MIGRATION.map((m) => {
+          const c =
+            m.pct === 100 ? "#000000" : m.pct > 0 ? "#555555" : "#cccccc";
+          return `
+      <div style="margin-bottom:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:700;">${m.site}</div>
+          <div style="font-size:12px;color:var(--ink3);">${m.deadline} · ${m.owner}</div>
+        </div>
+        <div class="prog-wrap"><div class="prog-bar" style="width:${Math.max(m.pct, 2)}%;background:${c};"></div></div>
+      </div>
+    `;
+        }).join("");
+
+        const cb = document.getElementById("comms-body");
+        cb.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;">
+      <div class="stat-box"><div class="stat-n" style="color:var(--cobalt);">3,267</div><div class="stat-l">Slack Messages</div><div class="stat-s">Jan 5 – Mar 16</div></div>
+      <div class="stat-box"><div class="stat-n" style="color:var(--green);">398</div><div class="stat-l">Tony Messages</div><div class="stat-s">82 active days</div></div>
+      <div class="stat-box"><div class="stat-n" style="color:var(--terra);">13%</div><div class="stat-l">Public Traffic</div><div class="stat-s">87% DM/private</div></div>
+      <div class="stat-box"><div class="stat-n" style="color:var(--amber);">1</div><div class="stat-l">Weekly Posters</div><div class="stat-s">in first 45 days</div></div>
+    </div>
+  `;
+      }
+
+      function renderLoops() {
+        const lc = document.getElementById("loops-container");
+        lc.innerHTML = LOOPS.map((l, i) => {
+          const pColor = l.p === "critical" ? "#000000" : "#333333";
+          const pBg =
+            l.p === "critical" ? "rgba(0,0,0,0.05)" : "rgba(0,0,0,0.03)";
+          return `
+      <div class="card" id="loop-${i}" style="border-left: 3px solid ${pColor}; margin-bottom: 10px;">
+        <div style="padding:14px 16px;display:flex;align-items:flex-start;gap:12px;">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:5px;">
+              <span class="badge" style="background:${pBg};color:${pColor};">${l.p}</span>
+              <span style="font-size:12px;color:var(--ink3);font-weight:700;">${l.owner}</span>
+              <span style="font-size:12px;color:var(--ink3);">· ${l.due}</span>
+            </div>
+            <div style="font-size:14px;line-height:1.55;">${l.text}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="resolveLoop(${i})" style="flex-shrink:0;">Resolve</button>
+        </div>
+      </div>
+    `;
+        }).join("");
+      }
+
+      function resolveLoop(i) {
+        const el = document.getElementById("loop-" + i);
+        el.style.opacity = "0.4";
+        el.style.pointerEvents = "none";
+        el.querySelector("button").textContent = "✓ Done";
+        el.style.borderLeftColor = "var(--green)";
+        toast("Loop marked resolved");
+      }
+
+      // ══════════════ INIT ══════════════
+      renderDashboard();
+      renderCompliance();
+      renderSystems();
+      renderLoops();
+    </script>
+  </body>
+</html>
