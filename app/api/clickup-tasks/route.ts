@@ -62,6 +62,30 @@ export async function GET() {
       }
     }
 
+    // Tasks grouped by assignee — sorted urgent → overdue → rest
+    const tasksByAssignee: Record<string, ReturnType<typeof taskDetail>[]> = {}
+    for (const t of tasks) {
+      if (t.status?.type === 'closed') continue
+      for (const a of (t.assignees ?? [])) {
+        const name = (a.username ?? a.email ?? '').toLowerCase()
+        if (!name) continue
+        if (!tasksByAssignee[name]) tasksByAssignee[name] = []
+        tasksByAssignee[name].push(taskDetail(t))
+      }
+    }
+    // Sort each person's tasks: urgent first, then overdue, then rest
+    for (const name of Object.keys(tasksByAssignee)) {
+      tasksByAssignee[name].sort((a, b) => {
+        const aUrgent = a.priority === 'urgent' ? 0 : a.priority === 'high' ? 1 : 2
+        const bUrgent = b.priority === 'urgent' ? 0 : b.priority === 'high' ? 1 : 2
+        if (aUrgent !== bUrgent) return aUrgent - bUrgent
+        // overdue (has dueDate) before no due date
+        if (a.dueDate && !b.dueDate) return -1
+        if (!a.dueDate && b.dueDate) return 1
+        return 0
+      })
+    }
+
     return NextResponse.json({
       totalTasks: totalActive,
       overdue: overdueTasks.length,
@@ -72,6 +96,7 @@ export async function GET() {
       urgentDetails: urgentTasks.slice(0, 25).map(taskDetail),
       highDetails: highTasks.slice(0, 25).map(taskDetail),
       assigneeStats,
+      tasksByAssignee,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error'

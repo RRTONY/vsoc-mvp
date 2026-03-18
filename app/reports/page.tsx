@@ -20,6 +20,7 @@ interface ClickUpData {
   urgentDetails?: OverdueTask[]; highDetails?: OverdueTask[]
   overdueDetails?: OverdueTask[]
   assigneeStats?: Record<string, { total: number; overdue: number; urgent: number }>
+  tasksByAssignee?: Record<string, OverdueTask[]>
 }
 
 interface Meeting {
@@ -48,6 +49,78 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     <div className="mb-6">
       <div className="slbl">{title}</div>
       {children}
+    </div>
+  )
+}
+
+function MemberRollup({ name, stats, tasks, didFile, flow, loading }: {
+  name: string; cuKey: string
+  stats: { total: number; overdue: number; urgent: number } | null
+  tasks: OverdueTask[]; didFile: boolean; flow: number | null; loading: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const hasIssues = (stats?.overdue ?? 0) > 0 || (stats?.urgent ?? 0) > 0 || !didFile
+  return (
+    <div className={`border ${hasIssues ? 'border-ink/30' : 'border-sand3'}`}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-sand3/40 transition-colors"
+      >
+        <div className={`w-7 h-7 flex items-center justify-center text-xs font-bold flex-shrink-0 ${hasIssues ? 'bg-black text-white' : 'bg-sand2 text-ink'}`}>
+          {name[0]}
+        </div>
+        <span className="text-sm font-bold flex-1">{name}</span>
+        {loading ? (
+          <span className="text-xs text-ink4 animate-pulse">Loading…</span>
+        ) : stats ? (
+          <div className="flex items-center gap-3 text-xs">
+            <span className="text-ink3">{stats.total} tasks</span>
+            {stats.overdue > 0 && <span className="font-bold text-red-600">{stats.overdue} overdue</span>}
+            {stats.urgent > 0 && <span className="font-bold text-amber-600">{stats.urgent} urgent</span>}
+            {flow !== null && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-12 h-1 bg-sand3"><div className="h-full bg-black" style={{ width: `${flow}%` }} /></div>
+                <span className="font-mono text-ink3">{flow}%</span>
+              </div>
+            )}
+          </div>
+        ) : null}
+        <span className={`text-[10px] font-bold ml-2 ${didFile ? 'text-green-700' : 'text-red-600'}`}>
+          {didFile ? '● Filed' : '✕ Missing'}
+        </span>
+        <span className="text-ink4 text-xs ml-2">{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div className="border-t border-sand3 px-4 py-2">
+          {tasks.length === 0 ? (
+            <p className="text-xs text-ink3 py-2">No active tasks in ClickUp.</p>
+          ) : (
+            <>
+              {tasks.slice(0, 20).map((t) => (
+                <a key={t.id} href={t.url} target="_blank" rel="noopener noreferrer"
+                  className="flex items-start gap-2 py-2 border-b border-sand3 last:border-0 hover:bg-sand3/30 -mx-4 px-4 transition-colors group">
+                  {t.priority && (
+                    <span className={`text-[10px] font-bold px-1 py-0.5 flex-shrink-0 mt-0.5 ${t.priority === 'urgent' ? 'bg-black text-white' : t.priority === 'high' ? 'bg-sand2 text-ink3' : 'text-ink4'}`}>
+                      {t.priority === 'urgent' ? 'URG' : t.priority === 'high' ? 'HI' : ''}
+                    </span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium group-hover:underline">{t.name}</div>
+                    <div className="text-[11px] text-ink4">{t.list}{t.dueDate ? ` · Due ${t.dueDate}` : ''}</div>
+                  </div>
+                  <span className="text-ink4 text-xs">↗</span>
+                </a>
+              ))}
+              {tasks.length > 20 && (
+                <a href="https://app.clickup.com/10643959/home" target="_blank" rel="noopener noreferrer"
+                  className="block text-xs text-ink4 hover:underline py-2">
+                  +{tasks.length - 20} more in ClickUp ↗
+                </a>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -208,58 +281,33 @@ export default function ReportsPage() {
       </div>
 
       {/* Team status roll-up */}
-      <Section title="Team Status Roll-Up">
-        <div className="card">
-          <div className="card-body overflow-x-auto p-0">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-sand3">
-                  {['Member', 'Report', 'Tasks', 'Overdue', 'Urgent', 'Flow Score'].map((h) => (
-                    <th key={h} className="text-left px-4 py-2.5 text-xs font-extrabold uppercase tracking-widest text-ink3 whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {TEAM.map((name) => {
-                  const cuKey = TEAM_CU[name] ?? name.split(' ')[0].toLowerCase()
-                  const stats = clickup?.assigneeStats
-                    ? Object.entries(clickup.assigneeStats).find(([k]) => k.includes(cuKey))?.[1]
-                    : null
-                  const didFile = filed.includes(name)
-                  const flow = stats && stats.total > 0
-                    ? Math.max(5, Math.round(100 - (stats.overdue / stats.total) * 100))
-                    : null
-                  return (
-                    <tr key={name} className="border-b border-sand3 last:border-0 hover:bg-sand3/30">
-                      <td className="px-4 py-2.5 font-bold whitespace-nowrap">{name}</td>
-                      <td className="px-4 py-2.5">
-                        {name === 'Tony Greenberg' ? (
-                          <span className="text-xs text-ink4">N/A</span>
-                        ) : didFile ? (
-                          <span className="text-xs font-bold text-green-700">● Filed</span>
-                        ) : (
-                          <span className="text-xs font-bold text-red-600">✕ Missing</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-2.5 font-mono text-sm">{stats ? stats.total : <span className="text-ink4">—</span>}</td>
-                      <td className="px-4 py-2.5 font-mono text-sm">{stats ? <span className={stats.overdue > 0 ? 'text-red-600 font-bold' : ''}>{stats.overdue}</span> : <span className="text-ink4">—</span>}</td>
-                      <td className="px-4 py-2.5 font-mono text-sm">{stats ? <span className={stats.urgent > 0 ? 'text-amber-600 font-bold' : ''}>{stats.urgent}</span> : <span className="text-ink4">—</span>}</td>
-                      <td className="px-4 py-2.5">
-                        {flow !== null ? (
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-sand3">
-                              <div className="h-full bg-black" style={{ width: `${flow}%` }} />
-                            </div>
-                            <span className="font-mono text-xs">{flow}%</span>
-                          </div>
-                        ) : <span className="text-ink4 text-xs">—</span>}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+      <Section title="Team Assignment Roll-Up">
+        <div className="space-y-2">
+          {TEAM.map((name) => {
+            const cuKey = TEAM_CU[name] ?? name.split(' ')[0].toLowerCase()
+            const stats = clickup?.assigneeStats
+              ? Object.entries(clickup.assigneeStats).find(([k]) => k.includes(cuKey))?.[1]
+              : null
+            const tasks = clickup?.tasksByAssignee
+              ? Object.entries(clickup.tasksByAssignee).find(([k]) => k.includes(cuKey))?.[1] ?? []
+              : []
+            const didFile = filed.includes(name)
+            const flow = stats && stats.total > 0
+              ? Math.max(5, Math.round(100 - (stats.overdue / stats.total) * 100))
+              : null
+            return (
+              <MemberRollup
+                key={name}
+                name={name}
+                cuKey={cuKey}
+                stats={stats ?? null}
+                tasks={tasks}
+                didFile={didFile}
+                flow={flow}
+                loading={loading}
+              />
+            )
+          })}
         </div>
       </Section>
 
