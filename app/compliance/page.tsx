@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useRefresh } from '@/components/RefreshContext'
 
 interface Member {
   name: string
@@ -32,6 +33,7 @@ const BT_CHECKS = [
 export default function CompliancePage() {
   const [team, setTeam] = useState<Member[]>(BASE_TEAM)
   const [checked, setChecked] = useState<boolean[]>(BT_CHECKS.map(() => false))
+  const { refreshKey } = useRefresh()
 
   useEffect(() => {
     fetch('/api/slack-stats')
@@ -47,7 +49,7 @@ export default function CompliancePage() {
         )
       })
       .catch(() => {})
-  }, [])
+  }, [refreshKey])
 
   const missing = team.filter((m) => !m.filed && m.name !== 'Tony Greenberg')
 

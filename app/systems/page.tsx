@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import SystemRow from '@/components/SystemRow'
 import ProgressBar from '@/components/ProgressBar'
+import { useRefresh } from '@/components/RefreshContext'
 
 type Status = 'green' | 'amber' | 'red'
 
@@ -41,27 +42,37 @@ const MIGRATION = [
   { site: 'findmyme.com', pct: 0, deadline: 'Q2 2026', owner: 'Chase' },
 ]
 
+interface SlackKPIs {
+  totalMessages: number
+  activeMembers: number
+  channels: number
+}
+
 export default function SystemsPage() {
   const [systems, setSystems] = useState<SystemStatus[]>(STATIC_SYSTEMS)
   const [lastChecked, setLastChecked] = useState('')
+  const [slackKPIs, setSlackKPIs] = useState<SlackKPIs | null>(null)
+  const { refreshKey } = useRefresh()
 
   useEffect(() => {
-    fetch('/api/systems-status')
-      .then((r) => r.json())
-      .then((d) => {
-        if (!d.systems) return
+    Promise.all([
+      fetch('/api/systems-status').then((r) => r.json()).catch(() => null),
+      fetch('/api/slack-stats').then((r) => r.json()).catch(() => null),
+    ]).then(([sysData, slackData]) => {
+      if (sysData?.systems) {
         setSystems((prev) =>
           prev.map((s) => {
-            const live = (d.systems as SystemStatus[]).find(
+            const live = (sysData.systems as SystemStatus[]).find(
               (ls) => ls.system.toLowerCase() === s.system.toLowerCase()
             )
             return live ? { ...s, status: live.status, detail: live.detail } : s
           })
         )
-        setLastChecked(new Date().toLocaleTimeString())
-      })
-      .catch(() => {})
-  }, [])
+      }
+      if (slackData?.slackStats) setSlackKPIs(slackData.slackStats)
+      setLastChecked(new Date().toLocaleTimeString())
+    })
+  }, [refreshKey])
 
   return (
     <div>
@@ -103,12 +114,12 @@ export default function SystemsPage() {
         <div className="card-body">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { value: '3,267', label: 'Slack Messages', sub: 'Jan 5 – Mar 16' },
-              { value: '398', label: 'Tony Messages', sub: '82 active days' },
+              { value: slackKPIs ? slackKPIs.totalMessages.toLocaleString() : '—', label: 'Slack Messages', sub: 'This week' },
+              { value: slackKPIs ? slackKPIs.activeMembers : '—', label: 'Active Members', sub: 'Non-bot accounts' },
+              { value: slackKPIs ? slackKPIs.channels : '—', label: 'Channels', sub: 'Public channels' },
               { value: '13%', label: 'Public Traffic', sub: '87% DM/private' },
-              { value: '1', label: 'Weekly Posters', sub: 'in first 45 days' },
             ].map((stat) => (
-              <div key={stat.label} className="border border-sand3 p-3">
+              <div key={stat.label} className={`border border-sand3 p-3 ${!slackKPIs && stat.value === '—' ? 'animate-pulse' : ''}`}>
                 <div className="font-serif font-black text-2xl">{stat.value}</div>
                 <div className="text-xs font-bold uppercase tracking-widest text-ink3 mt-0.5">{stat.label}</div>
                 <div className="text-xs text-ink4 mt-0.5">{stat.sub}</div>

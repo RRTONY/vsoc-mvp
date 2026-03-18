@@ -21,10 +21,10 @@ export default function NavTabs() {
           <Link
             key={t.href}
             href={t.href}
-            className={`px-5 py-3 text-sm font-bold whitespace-nowrap border-b-2 transition-colors ${
+            className={`px-4 py-3 text-xs font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-colors ${
               active
                 ? 'border-ink text-ink'
-                : 'border-transparent text-ink4 hover:text-ink3 hover:border-sand3'
+                : 'border-transparent text-ink4 hover:text-ink3'
             }`}
           >
             {t.label}

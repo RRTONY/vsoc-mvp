@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import StatBox from '@/components/StatBox'
 import ProgressBar from '@/components/ProgressBar'
-import Topbar from '@/components/Topbar'
+import { useRefresh } from '@/components/RefreshContext'
 
 interface SlackData {
   weeklyReports?: { filed: string[]; missing: string[]; week: string }
@@ -16,6 +16,7 @@ interface ClickUpData {
   overdue?: number
   overduePercent?: number
   urgent?: number
+  completed?: number
   error?: string
 }
 
@@ -43,9 +44,9 @@ export default function DashboardPage() {
   const [slack, setSlack] = useState<SlackData | null>(null)
   const [clickup, setClickUp] = useState<ClickUpData | null>(null)
   const [loading, setLoading] = useState(true)
-  const [lastUpdated, setLastUpdated] = useState('')
+  const { refreshKey, triggerRefresh } = useRefresh()
 
-  const refresh = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true)
     const [s, c] = await Promise.all([
       fetch('/api/slack-stats').then((r) => r.json()).catch(() => null),
@@ -53,89 +54,169 @@ export default function DashboardPage() {
     ])
     setSlack(s)
     setClickUp(c)
-    setLastUpdated(new Date().toLocaleTimeString())
     setLoading(false)
-  }, [])
+    triggerRefresh()
+  }, [triggerRefresh])
 
   useEffect(() => {
-    refresh()
-    const id = setInterval(refresh, REFRESH_INTERVAL)
+    fetchData()
+    const id = setInterval(fetchData, REFRESH_INTERVAL)
     return () => clearInterval(id)
-  }, [refresh])
+  }, [fetchData, refreshKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const wr = slack?.weeklyReports
   const filed = wr?.filed ?? []
   const missing = wr?.missing ?? []
-  const week = wr?.week ?? 'This week'
+  const week = wr?.week ?? '—'
+  const slackStats = slack?.slackStats
+
+  // Dynamic alerts
+  const alerts: { type: 'red' | 'amber' | 'blue'; text: React.ReactNode }[] = []
+
+  if (missing.length > 0 && !loading) {
+    alerts.push({
+      type: 'red',
+      text: (
+        <>
+          <strong>{missing.map((n) => n.split(' ')[0]).join(' + ')}:</strong> Weekly reports not filed.
+          Required by EOD.
+        </>
+      ),
+    })
+  }
+
+  if ((clickup?.overduePercent ?? 0) > 70 && !loading) {
+    alerts.push({
+      type: 'red',
+      text: (
+        <>
+          <strong>ClickUp CRM:</strong> {clickup?.overdue} of {clickup?.totalTasks} tasks overdue
+          ({clickup?.overduePercent}%). {clickup?.urgent} urgent items need triage.
+        </>
+      ),
+    })
+  }
+
+  alerts.push({
+    type: 'red',
+    text: (
+      <>
+        <strong>BILL.com:</strong> 12 sync conflicts + Holographik invoice pending. Kim to resolve today.
+      </>
+    ),
+  })
+
+  alerts.push({
+    type: 'amber',
+    text: (
+      <>
+        <strong>Braintrust template:</strong> 4-point checklist not integrated. Kim due Mar 18.{' '}
+        <a href="https://app.clickup.com/t/868hwv6u4" target="_blank" className="underline">
+          Task 868hwv6u4
+        </a>
+      </>
+    ),
+  })
+
+  alerts.push({
+    type: 'blue',
+    text: (
+      <>
+        <strong>ImpactSoul legal entity:</strong> No entity = no grants, no Series A. Tony / Kim — this week.
+      </>
+    ),
+  })
 
   return (
-    <>
-      <Topbar onRefresh={refresh} lastUpdated={lastUpdated} />
-
-      <div className="slbl mt-6">Command Overview — Week of {week}</div>
+    <div>
+      <div className="slbl mt-6">
+        Command Overview{week !== '—' ? ` — Week of ${week}` : ''}
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <StatBox
           value={loading ? '—' : filed.length}
           label="Reports Filed"
-          sub={filed.length ? filed.map((n) => n.split(' ')[0]).join(' · ') : 'None yet'}
+          sub={
+            loading ? '…'
+            : filed.length
+            ? filed.map((n) => n.split(' ')[0]).join(' · ')
+            : 'None yet'
+          }
           shade="black"
           loading={loading}
         />
         <StatBox
           value={loading ? '—' : missing.length}
           label="Missing"
-          sub={missing.length ? missing.map((n) => n.split(' ')[0]).join(' · ') : 'All filed ✓'}
+          sub={
+            loading ? '…'
+            : missing.length
+            ? missing.map((n) => n.split(' ')[0]).join(' · ')
+            : 'All filed ✓'
+          }
           shade="gray"
           loading={loading}
         />
-        <StatBox
-          value="12"
-          label="BILL.com"
-          sub="Sync conflicts"
-          shade="gray"
-        />
+        <StatBox value="12" label="BILL.com" sub="Sync conflicts" shade="gray" />
         <StatBox
           value={loading ? '—' : `${clickup?.overduePercent ?? '—'}%`}
           label="CRM Overdue"
-          sub={clickup ? `${clickup.overdue}/${clickup.totalTasks} tasks` : '—'}
+          sub={clickup && !loading ? `${clickup.overdue}/${clickup.totalTasks} tasks` : '…'}
           shade="gray"
           loading={loading}
         />
+        <StatBox value="$50K" label="STBL Monthly" sub="Target Apr 30" shade="black" />
         <StatBox
-          value="$50K"
-          label="STBL Monthly"
-          sub="Target Apr 30"
+          value={loading ? '—' : slackStats?.activeMembers ?? '—'}
+          label="Slack Members"
+          sub={loading ? '…' : `${slackStats?.channels ?? '—'} channels`}
           shade="black"
-        />
-        <StatBox
-          value="100%"
-          label="ramprate.com"
-          sub="Migration done"
-          shade="black"
+          loading={loading}
         />
       </div>
 
       <div className="slbl">Today&apos;s Critical Items</div>
+      {loading ? (
+        <div className="alert alert-amber animate-pulse">Loading live data…</div>
+      ) : (
+        alerts.map((a, i) => (
+          <div key={i} className={`alert alert-${a.type}`}>{a.text}</div>
+        ))
+      )}
 
-      {missing.length > 0 && (
-        <div className="alert alert-red">
-          <strong>{missing.map((n) => n.split(' ')[0]).join(' + ')}:</strong>{' '}
-          Weekly reports not filed as of today.
+      <div className="slbl">ClickUp Summary</div>
+      {clickup && !loading && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {[
+            { label: 'Total Tasks', value: clickup.totalTasks ?? '—' },
+            { label: 'Overdue', value: clickup.overdue ?? '—' },
+            { label: 'Urgent', value: clickup.urgent ?? '—' },
+            { label: 'Completed', value: clickup.completed ?? '—' },
+          ].map((s) => (
+            <div key={s.label} className="border border-sand3 p-3">
+              <div className="font-serif font-black text-2xl">{s.value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mt-0.5">{s.label}</div>
+            </div>
+          ))}
         </div>
       )}
-      <div className="alert alert-red">
-        <strong>BILL.com:</strong> 12 sync conflicts + Holographik invoice pending. Kim to resolve today.
-      </div>
-      <div className="alert alert-amber">
-        <strong>Braintrust template:</strong> 4-point checklist not integrated. Kim due Mar 18.{' '}
-        <a href="https://app.clickup.com/t/868hwv6u4" target="_blank" className="underline">
-          Task 868hwv6u4
-        </a>
-      </div>
-      <div className="alert alert-blue">
-        <strong>Reeve — 2 PM today:</strong> Flipped ownership model review. Alex Bolt package needed before call.
-      </div>
+
+      <div className="slbl">Slack Activity</div>
+      {slackStats && !loading && (
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { label: 'Messages This Week', value: slackStats.totalMessages },
+            { label: 'Active Members', value: slackStats.activeMembers },
+            { label: 'Channels', value: slackStats.channels },
+          ].map((s) => (
+            <div key={s.label} className="border border-sand3 p-3">
+              <div className="font-serif font-black text-2xl">{s.value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mt-0.5">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="slbl">Team Flow This Week</div>
       <div className="card">
@@ -154,6 +235,6 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
-    </>
+    </div>
   )
 }

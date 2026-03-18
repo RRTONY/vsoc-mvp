@@ -2,18 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import LivePill from './LivePill'
+import { useRefresh } from './RefreshContext'
 
-interface TopbarProps {
-  onRefresh?: () => void
-  lastUpdated?: string
-}
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-
-export default function Topbar({ onRefresh, lastUpdated }: TopbarProps) {
+export default function Topbar() {
   const [clock, setClock] = useState('--:--:--')
   const [dateStr, setDateStr] = useState('')
+  const { lastUpdated, triggerRefresh } = useRefresh()
 
   useEffect(() => {
     function tick() {
@@ -21,7 +18,7 @@ export default function Topbar({ onRefresh, lastUpdated }: TopbarProps) {
       setClock(
         `${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}:${String(n.getSeconds()).padStart(2, '0')}`
       )
-      setDateStr(`${DAYS[n.getDay()]} · ${MONTHS[n.getMonth()]} ${n.getDate()}, ${n.getFullYear()}`)
+      setDateStr(`${DAYS[n.getDay()]} ${MONTHS[n.getMonth()]} ${n.getDate()}`)
     }
     tick()
     const id = setInterval(tick, 1000)
@@ -29,24 +26,28 @@ export default function Topbar({ onRefresh, lastUpdated }: TopbarProps) {
   }, [])
 
   return (
-    <div className="bg-ink text-sand px-5 h-14 flex items-center justify-between sticky top-0 z-40">
-      <div className="font-display text-xl tracking-wider">
-        RAMPRATE · <span className="font-sans font-medium text-base normal-case tracking-normal opacity-80">Visual Chief of Staff</span>
+    <div className="bg-ink text-sand h-14 flex items-center justify-between px-4 sticky top-0 z-40 border-b border-white/10">
+      {/* Brand */}
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        <span className="font-display text-lg tracking-widest whitespace-nowrap">RAMPRATE</span>
+        <span className="text-white/30 hidden sm:block">·</span>
+        <span className="text-sm font-medium opacity-60 truncate hidden sm:block">Visual Chief of Staff</span>
       </div>
-      <div className="flex items-center gap-3 text-xs">
-        <span className="text-white/60 hidden sm:block">{dateStr}</span>
-        <span className="font-mono font-medium">{clock}</span>
+
+      {/* Right controls */}
+      <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+        <span className="text-white/50 font-mono text-xs hidden md:block">{dateStr}</span>
+        <span className="font-mono text-sm tabular-nums">{clock}</span>
         {lastUpdated && (
-          <span className="text-white/50 hidden md:block">Updated {lastUpdated}</span>
+          <span className="text-white/40 text-xs hidden lg:block">· {lastUpdated}</span>
         )}
-        {onRefresh && (
-          <button
-            onClick={onRefresh}
-            className="border border-white/30 px-2 py-1 font-mono text-xs hover:bg-white/10 transition-colors"
-          >
-            ↻ Refresh
-          </button>
-        )}
+        <button
+          onClick={triggerRefresh}
+          className="border border-white/20 px-2 py-0.5 font-mono text-xs hover:bg-white/10 transition-colors"
+          title="Refresh live data"
+        >
+          ↻
+        </button>
         <LivePill />
       </div>
     </div>
