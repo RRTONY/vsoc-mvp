@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Fraunces:opsz,wght@9..144,700;9..144,900&family=Cabinet+Grotesk:wght@400;500;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-sand text-ink font-sans;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-sand border border-sand3 mb-4;
+  }
+  .card-hd {
+    @apply px-4 py-3 border-b border-sand3 flex items-center justify-between;
+  }
+  .card-ti {
+    @apply text-sm font-extrabold uppercase tracking-widest;
+  }
+  .card-body {
+    @apply p-4;
+  }
+  .slbl {
+    @apply text-xs font-extrabold uppercase tracking-widest text-ink3 mb-3 mt-6;
+  }
+  .badge {
+    @apply text-xs font-bold px-2 py-0.5 border border-sand3 bg-sand2;
+  }
+  .badge-red {
+    @apply text-xs font-bold px-2 py-0.5 bg-ink text-sand;
+  }
+  .alert {
+    @apply text-sm p-3 mb-3 border-l-4 font-medium;
+  }
+  .alert-red {
+    @apply border-ink bg-sand2;
+  }
+  .alert-amber {
+    @apply border-ink3 bg-sand2;
+  }
+  .alert-blue {
+    @apply border-ink4 bg-sand2;
+  }
+  .field-input {
+    @apply w-full border border-sand3 px-3 py-2 text-sm font-sans bg-sand focus:outline-none focus:border-ink transition-colors;
+  }
+  .btn-primary {
+    @apply bg-ink text-sand font-bold text-sm px-6 py-3 hover:bg-ink2 transition-colors cursor-pointer border-0;
+  }
+  .btn-secondary {
+    @apply bg-sand border border-sand3 text-ink font-bold text-xs px-3 py-1.5 hover:bg-sand2 transition-colors cursor-pointer;
+  }
+  .check-row {
+    @apply flex items-start gap-2 py-2 cursor-pointer;
+  }
+  .check-box {
+    @apply w-4 h-4 border border-ink3 mt-0.5 flex-shrink-0 flex items-center justify-center;
+  }
+  .check-box.checked {
+    @apply bg-ink border-ink;
+  }
+  .check-box.checked::after {
+    content: '✓';
+    @apply text-sand text-[10px] font-bold;
+  }
+}
