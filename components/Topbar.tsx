@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react' // eslint-disable-line @typescript-eslint/no-unused-vars
 import { useRouter } from 'next/navigation'
 import LivePill from './LivePill'
 import { useRefresh } from './RefreshContext'
@@ -12,8 +12,7 @@ export default function Topbar() {
   const [clock, setClock] = useState('--:--:--')
   const [dateStr, setDateStr] = useState('')
   const [user, setUser] = useState<{ username: string; role: string } | null>(null)
-  const [countdown, setCountdown] = useState(30)
-  const { lastUpdated, triggerRefresh, nextRefresh } = useRefresh()
+  const { lastUpdated, triggerRefresh } = useRefresh()
   const router = useRouter()
 
   // Clock
@@ -27,18 +26,6 @@ export default function Topbar() {
     const id = setInterval(tick, 1000)
     return () => clearInterval(id)
   }, [])
-
-  // Refresh countdown
-  useEffect(() => {
-    if (!nextRefresh) return
-    const update = () => {
-      const secs = Math.max(0, Math.round((nextRefresh - Date.now()) / 1000))
-      setCountdown(secs)
-    }
-    update()
-    const id = setInterval(update, 1000)
-    return () => clearInterval(id)
-  }, [nextRefresh])
 
   // Fetch current user
   useEffect(() => {
@@ -67,10 +54,7 @@ export default function Topbar() {
       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
         <span className="text-white/50 font-mono text-xs hidden md:block">{dateStr}</span>
         <span className="font-mono text-sm tabular-nums">{clock}</span>
-        {nextRefresh != null && (
-          <span className="text-white/40 text-xs hidden lg:block font-mono">↻ {countdown}s</span>
-        )}
-        {lastUpdated && !nextRefresh && (
+        {lastUpdated && (
           <span className="text-white/40 text-xs hidden lg:block">· {lastUpdated}</span>
         )}
         <button

@@ -45,8 +45,6 @@ const OKRS = [
   { id: 'OKR06', label: 'Website Migration', pct: 100, note: 'ramprate.com DONE ✓' },
 ]
 
-const SLACK_INTERVAL = 30 * 1000   // 30 seconds — critical (who filed reports)
-const CU_INTERVAL = 60 * 1000      // 60 seconds — tasks
 
 function findStats(
   assigneeStats: Record<string, { total: number; overdue: number; urgent: number }> | undefined,
@@ -140,7 +138,7 @@ function MemberCard({
           </div>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {member.full !== 'Tony Greenberg' && (
+          {member.name !== 'Tony' && (
             <span className={`text-[10px] font-bold ${filed ? 'text-green-700' : 'text-red-600'}`}>
               {filed ? '● RPT' : '✕ RPT'}
             </span>
@@ -178,7 +176,7 @@ export default function DashboardPage() {
   const [slack, setSlack] = useState<SlackData | null>(null)
   const [clickup, setClickUp] = useState<ClickUpData | null>(null)
   const [loading, setLoading] = useState(true)
-  const { refreshKey, setNextRefresh } = useRefresh()
+  const { refreshKey } = useRefresh()
   const prevKey = useRef(refreshKey)
 
   const load = useCallback(async (cancelled: { v: boolean }) => {
@@ -191,15 +189,13 @@ export default function DashboardPage() {
       setSlack(s)
       setClickUp(c)
       setLoading(false)
-      setNextRefresh(Date.now() + SLACK_INTERVAL)
     }
-  }, [setNextRefresh])
+  }, [])
 
   useEffect(() => {
     const cancelled = { v: false }
     load(cancelled)
-    const id = setInterval(() => load(cancelled), SLACK_INTERVAL)
-    return () => { cancelled.v = true; clearInterval(id) }
+    return () => { cancelled.v = true }
   }, [load])
 
   useEffect(() => {
