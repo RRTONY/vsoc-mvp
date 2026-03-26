@@ -36,14 +36,14 @@ export default function CompliancePage() {
   const [team, setTeam] = useState<Member[]>(BASE_TEAM)
   const [checked, setChecked] = useState<boolean[]>(BT_CHECKS.map(() => false))
   const [isAdmin, setIsAdmin] = useState(false)
-  const [isTony, setIsTony] = useState(false)
+  const [isOwner, setIsOwner] = useState(false)
   const { refreshKey } = useRefresh()
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
       .then(d => {
-        setIsAdmin(d?.role === 'admin')
-        setIsTony(['tony', 'ramprate'].includes(d?.username ?? ''))
+        setIsAdmin(['admin', 'owner'].includes(d?.role ?? ''))
+        setIsOwner(d?.role === 'owner')
       })
       .catch(() => {})
   }, [])
@@ -81,7 +81,7 @@ export default function CompliancePage() {
               <tr className="border-b border-sand3">
                 <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Team Member</th>
                 <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Role</th>
-                {isTony && <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Rate</th>}
+                {isOwner && <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Rate</th>}
                 <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">This Week</th>
                 <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 pl-4">Braintrust</th>
               </tr>
@@ -93,7 +93,7 @@ export default function CompliancePage() {
                   <tr key={m.name} className="border-b border-sand3 last:border-0">
                     <td className="py-2.5 font-bold">{m.name}</td>
                     <td className="py-2.5 text-ink3 text-xs">{m.role}</td>
-                    {isTony && <td className={`py-2.5 font-mono font-bold text-right ${rateColor}`}>{m.rate}%</td>}
+                    {isOwner && <td className={`py-2.5 font-mono font-bold text-right ${rateColor}`}>{m.rate}%</td>}
                     <td className="py-2.5 text-right">
                       {m.filed
                         ? <span className="font-mono text-xs font-bold">● FILED</span>

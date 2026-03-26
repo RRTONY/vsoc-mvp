@@ -33,7 +33,7 @@ const TEAM = [
   { name: 'Josh', full: 'Josh Bykowski', role: 'Legal · BD', cuKey: 'josh' },
   { name: 'Daniel', full: 'Daniel Baez', role: 'Webmaster', cuKey: 'daniel' },
   { name: 'Ben', full: 'Ben Sheppard', role: 'ImpactSoul Contractor', cuKey: 'ben' },
-  { name: 'Tony', full: 'Tony', role: 'CEO', cuKey: 'tonyg' },
+  { name: 'Tony', full: 'Tony', role: 'CEO', cuKey: 'tony' },
 ]
 
 const OKRS = [

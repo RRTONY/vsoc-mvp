@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret')
   const isScheduled = secret === process.env.CRON_SECRET
 
-  if (!isScheduled && role !== 'admin') {
+  if (!isScheduled && !['admin', 'owner'].includes(role ?? '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

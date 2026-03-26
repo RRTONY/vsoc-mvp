@@ -27,7 +27,7 @@ export default function NavTabs() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
-      .then(d => setIsAdmin(d?.role === 'admin'))
+      .then(d => setIsAdmin(['admin', 'owner'].includes(d?.role ?? '')))
       .catch(() => {})
   }, [])
 

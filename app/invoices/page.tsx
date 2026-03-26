@@ -16,7 +16,7 @@ interface Invoice {
   clickupUrl?: string
 }
 
-interface Me { username: string; role: string }
+interface Me { username: string; role: 'owner' | 'admin' | 'user' }
 
 const STATUS_STYLE: Record<string, string> = {
   paid:    'bg-black text-white',
@@ -71,8 +71,8 @@ export default function InvoicesPage() {
     }
   }
 
-  const isAdmin = me?.role === 'admin'
-  const isTony = ['tony', 'ramprate'].includes(me?.username ?? '')
+  const isAdmin = me?.role === 'admin' || me?.role === 'owner'
+  const isOwner = me?.role === 'owner'
   const visible = isAdmin ? invoices : invoices.filter(inv =>
     inv.contractor.toLowerCase().includes(me?.username?.toLowerCase() ?? '____')
   )
@@ -128,7 +128,7 @@ export default function InvoicesPage() {
                     <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Invoice</th>
                     <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Period</th>
                     <th className="text-right py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Hours</th>
-                    {isTony && (
+                    {isOwner && (
                       <th className="text-right py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Rate</th>
                     )}
                     {isAdmin && (
@@ -145,7 +145,7 @@ export default function InvoicesPage() {
                       <td className="py-2.5 px-3 font-mono text-xs text-ink3">{inv.invoiceNumber || '—'}</td>
                       <td className="py-2.5 px-3 text-xs text-ink3">{inv.period || '—'}</td>
                       <td className="py-2.5 px-3 text-right font-mono text-sm">{inv.hours > 0 ? inv.hours : '—'}</td>
-                      {isTony && (
+                      {isOwner && (
                         <td className="py-2.5 px-3 text-right font-mono text-sm">
                           {inv.rate > 0 ? `$${inv.rate}/hr` : '—'}
                         </td>

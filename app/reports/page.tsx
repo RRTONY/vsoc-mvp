@@ -51,7 +51,7 @@ interface Meeting {
 const TEAM = ['Rob Holmes', 'Alex Veytsel', 'Josh Bykowski', 'Kim', 'Chase', 'Daniel Baez', 'Ben Sheppard', 'Tony']
 const TEAM_CU: Record<string, string> = {
   'Rob Holmes': 'rob', 'Alex Veytsel': 'alex', 'Josh Bykowski': 'josh',
-  'Kim': 'kim', 'Chase': 'chase', 'Daniel Baez': 'daniel', 'Ben Sheppard': 'ben', 'Tony': 'tonyg',
+  'Kim': 'kim', 'Chase': 'chase', 'Daniel Baez': 'daniel', 'Ben Sheppard': 'ben', 'Tony': 'tony',
 }
 
 const OKRS = [
@@ -207,14 +207,14 @@ export default function ReportsPage() {
   const [dailyHistory, setDailyHistory] = useState<DailyReport[]>([])
   const [dailyLoading, setDailyLoading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
-  const [webworkData, setWebworkData] = useState<{ week: string[]; members: WebWorkMember[] } | null>(null)
+  const [webworkData, setWebworkData] = useState<{ week: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
   const prevKey = useRef(refreshKey)
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
-      .then(d => setIsAdmin(d?.role === 'admin'))
+      .then(d => setIsAdmin(['admin', 'owner'].includes(d?.role ?? '')))
       .catch(() => {})
   }, [])
 
@@ -368,8 +368,10 @@ export default function ReportsPage() {
         <div className="space-y-3">
           {webworkLoading ? (
             <div className="text-ink4 text-sm animate-pulse">Loading WebWork hours…</div>
-          ) : !webworkData ? (
-            <div className="card p-6 text-center text-ink4 text-sm">Failed to load WebWork data.</div>
+          ) : !webworkData || !webworkData.members ? (
+            <div className="card p-6 text-center text-ink4 text-sm">
+              {webworkData?.error ?? 'Failed to load WebWork data. Check WEBWORK_API_KEY.'}
+            </div>
           ) : (
             <>
               <div className="text-xs text-ink3 mb-2">

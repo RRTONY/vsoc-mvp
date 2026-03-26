@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabase'
 import { hashPassword, generateTempPassword } from '@/lib/password'
 
 function adminOnly(req: NextRequest) {
-  const role = req.headers.get('x-role')
-  if (role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const role = req.headers.get('x-role') ?? ''
+  if (!['admin', 'owner'].includes(role)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   return null
 }
 

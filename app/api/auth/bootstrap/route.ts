@@ -5,8 +5,8 @@ import { hashPassword } from '@/lib/password'
 // Seed all users into Supabase vcos_users table
 // POST /api/auth/bootstrap  (admin session required via cookie — run once after deploy)
 const SEED_USERS = [
-  { username: 'tony',     password: 'vcos2026', role: 'admin' },
-  { username: 'ramprate', password: 'vcos2026', role: 'admin' },
+  { username: 'tony',     password: 'vcos2026', role: 'owner' },
+  { username: 'ramprate', password: 'vcos2026', role: 'owner' },
   { username: 'kim',      password: 'vcos2026', role: 'admin' },
   { username: 'chase',    password: 'vcos2026', role: 'admin' },
   { username: 'rob',      password: 'vcos2026', role: 'user' },
@@ -17,7 +17,7 @@ const SEED_USERS = [
 ]
 
 export async function POST(req: NextRequest) {
-  if (req.headers.get('x-role') !== 'admin') {
+  if (!['admin', 'owner'].includes(req.headers.get('x-role') ?? '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

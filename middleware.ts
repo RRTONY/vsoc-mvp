@@ -19,11 +19,11 @@ export async function middleware(req: NextRequest) {
   if (token) {
     const session = await verifySession(token)
     if (session) {
-      // Pass username + role as headers for API routes to read
-      const res = NextResponse.next()
-      res.headers.set('x-user', session.username)
-      res.headers.set('x-role', session.role)
-      return res
+      // Forward username + role as REQUEST headers so API routes can read them
+      const requestHeaders = new Headers(req.headers)
+      requestHeaders.set('x-user', session.username)
+      requestHeaders.set('x-role', session.role)
+      return NextResponse.next({ request: { headers: requestHeaders } })
     }
   }
 
