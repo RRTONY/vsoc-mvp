@@ -1,33 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { MEMBER_IDS, getWeekHours, getCurrentWeekDates } from '@/lib/webwork'
+import { setCache } from '@/lib/api-cache'
+import { buildClickUpSnapshot } from '@/app/api/clickup-tasks/route'
+import { buildSlackSnapshot } from '@/app/api/slack-stats/route'
+import { buildWebWorkSnapshot } from '@/app/api/webwork/route'
+import { buildFirefliesSnapshot } from '@/app/api/fireflies-meetings/route'
 
 async function generateDailyReport() {
   const today = new Date().toISOString().slice(0, 10)
-
-  // Fetch all data sources in parallel
   const baseUrl = process.env.ALLOWED_ORIGIN?.replace(/\/$/, '') ?? 'http://localhost:3000'
-  const [slackRes, clickupRes, systemsRes] = await Promise.allSettled([
-    fetch(`${baseUrl}/api/slack-stats`).then(r => r.json()),
-    fetch(`${baseUrl}/api/clickup-tasks`).then(r => r.json()),
+
+  // Fetch all sources in parallel using snapshot builders + systems status
+  const [slackRes, clickupRes, webworkRes, firefliesRes, systemsRes] = await Promise.allSettled([
+    buildSlackSnapshot(),
+    buildClickUpSnapshot(),
+    buildWebWorkSnapshot(),
+    buildFirefliesSnapshot(),
     fetch(`${baseUrl}/api/systems-status`).then(r => r.json()),
   ])
 
-  const slack = slackRes.status === 'fulfilled' ? slackRes.value : null
+  const slack   = slackRes.status   === 'fulfilled' ? slackRes.value   : null
   const clickup = clickupRes.status === 'fulfilled' ? clickupRes.value : null
+  const webwork = webworkRes.status === 'fulfilled' ? webworkRes.value : null
   const systems = systemsRes.status === 'fulfilled' ? systemsRes.value : null
 
-  // WebWork hours for today
-  const weekDates = getCurrentWeekDates()
+  // Persist all snapshots to unified cache
+  await Promise.allSettled([
+    slack   ? setCache('slack',      slack)   : Promise.resolve(),
+    clickup ? setCache('clickup',    clickup) : Promise.resolve(),
+    webwork ? setCache('webwork',    webwork) : Promise.resolve(),
+    firefliesRes.status === 'fulfilled' ? setCache('fireflies', firefliesRes.value) : Promise.resolve(),
+  ])
+
   const teamHours: Record<string, number> = {}
-  await Promise.all(
-    Object.entries(MEMBER_IDS).map(async ([username, userId]) => {
-      try {
-        const { totalMinutes } = await getWeekHours(userId, weekDates)
-        teamHours[username] = Math.round(totalMinutes / 60 * 10) / 10
-      } catch { teamHours[username] = 0 }
-    })
-  )
+  for (const m of (webwork?.members ?? [])) {
+    teamHours[m.username] = m.totalHours
+  }
 
   const filed: string[] = slack?.weeklyReports?.filed ?? []
   const missing: string[] = slack?.weeklyReports?.missing ?? []

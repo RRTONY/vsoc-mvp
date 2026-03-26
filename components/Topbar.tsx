@@ -13,6 +13,7 @@ export default function Topbar() {
   const [dateStr, setDateStr] = useState('')
   const [user, setUser] = useState<{ username: string; role: string } | null>(null)
   const { lastUpdated, triggerRefresh } = useRefresh()
+  const [refreshing, setRefreshing] = useState(false)
   const router = useRouter()
 
   // Clock
@@ -58,11 +59,17 @@ export default function Topbar() {
           <span className="text-white/40 text-xs hidden lg:block">· {lastUpdated}</span>
         )}
         <button
-          onClick={triggerRefresh}
-          className="border border-white/20 px-2 py-0.5 font-mono text-xs hover:bg-white/10 transition-colors"
-          title="Refresh live data"
+          onClick={async () => {
+            setRefreshing(true)
+            await fetch('/api/clickup-tasks', { method: 'POST' }).catch(() => {})
+            triggerRefresh()
+            setRefreshing(false)
+          }}
+          disabled={refreshing}
+          className="border border-white/20 px-2 py-0.5 font-mono text-xs hover:bg-white/10 transition-colors disabled:opacity-40"
+          title="Refresh data from ClickUp"
         >
-          ↻
+          {refreshing ? '…' : '↻'}
         </button>
         <LivePill />
         {user && (

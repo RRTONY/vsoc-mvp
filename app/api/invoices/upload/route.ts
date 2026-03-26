@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   // RBAC — admin only
   const token = req.cookies.get(COOKIE_NAME)?.value
   const session = token ? await verifySession(token) : null
-  if (!session || session.role !== 'admin') {
+  if (!session || !['admin', 'owner'].includes(session.role)) {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
