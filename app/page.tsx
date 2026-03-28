@@ -41,18 +41,18 @@ function TaskRow({ t }: { t: Task }) {
       href={t.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-start gap-2 py-2 border-b border-sand3 last:border-0 hover:bg-sand3/30 -mx-4 px-4 transition-colors group"
+      className="flex items-start gap-3 py-2.5 border-b border-sand3 last:border-0 hover:bg-sand2 -mx-4 px-4 transition-colors group"
     >
       {(isUrgent || isHigh) && (
-        <span className={`text-[10px] font-bold px-1 py-0.5 flex-shrink-0 mt-0.5 ${isUrgent ? 'bg-black text-white' : 'bg-sand2 text-ink3'}`}>
-          {isUrgent ? 'URG' : 'HI'}
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${isUrgent ? 'bg-danger-light text-danger' : 'bg-warning-light text-warning'}`}>
+          {isUrgent ? 'Urgent' : 'High'}
         </span>
       )}
       <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium group-hover:underline leading-snug">{t.name}</div>
-        <div className="text-[11px] text-ink4 mt-0.5">{t.list}{t.dueDate ? ` · ${t.dueDate}` : ''}</div>
+        <div className="text-sm font-medium group-hover:text-accent leading-snug">{t.name}</div>
+        <div className="text-xs text-ink4 mt-0.5">{t.list}{t.dueDate ? ` · Due ${t.dueDate}` : ''}</div>
       </div>
-      <span className="text-ink4 text-xs flex-shrink-0">↗</span>
+      <span className="text-ink4 text-sm flex-shrink-0 group-hover:text-accent">↗</span>
     </a>
   )
 }
@@ -72,57 +72,53 @@ function MemberCard({
     : null
   const hasIssues = (stats?.overdue ?? 0) > 0 || (stats?.urgent ?? 0) > 0 || !filed
 
+  const flowColor = flow === null ? '' : flow >= 80 ? 'bg-success' : flow >= 50 ? 'bg-warning' : 'bg-danger'
+
   return (
-    <div className={`border ${hasIssues ? 'border-ink/30' : 'border-sand3'} bg-sand`}>
+    <div className={`card mb-2 ${hasIssues ? 'border-danger/30' : ''}`}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 p-3 text-left hover:bg-sand3/40 transition-colors"
+        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-sand2 transition-colors rounded-lg"
       >
-        {/* Avatar initial */}
-        <div className={`w-8 h-8 flex items-center justify-center font-bold text-sm flex-shrink-0 ${hasIssues ? 'bg-black text-white' : 'bg-sand2 text-ink3'}`}>
+        {/* Avatar */}
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-base flex-shrink-0 ${hasIssues ? 'bg-danger text-white' : 'bg-accent-light text-accent'}`}>
           {member.name[0]}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-bold">{member.name}</span>
-            <span className="text-[11px] text-ink4">{member.role}</span>
+            <span className="text-base font-semibold">{member.name}</span>
+            <span className="text-sm text-ink4">{member.role}</span>
           </div>
-          <div className="flex items-center gap-3 mt-1">
-            {loading ? (
-              <span className="text-xs text-ink4 animate-pulse">Loading…</span>
-            ) : stats ? (
-              <>
-                <span className="text-xs text-ink3">{stats.total} tasks</span>
-                {stats.overdue > 0 && <span className="text-xs font-bold text-red-600">{stats.overdue} overdue</span>}
-                {stats.urgent > 0 && <span className="text-xs font-bold text-amber-600">{stats.urgent} urgent</span>}
-                {flow !== null && (
-                  <div className="flex items-center gap-1.5 ml-auto">
-                    <div className="w-12 h-1 bg-sand3">
-                      <div className="h-full bg-black" style={{ width: `${flow}%` }} />
-                    </div>
-                    <span className="text-[11px] font-mono text-ink3">{flow}%</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className="text-xs text-ink4">No tasks in ClickUp</span>
-            )}
-          </div>
+          {loading ? (
+            <div className="h-2 w-24 bg-sand3 rounded mt-2 animate-pulse" />
+          ) : stats && flow !== null ? (
+            <div className="flex items-center gap-3 mt-2">
+              <div className="progress-track w-24">
+                <div className={`progress-fill ${flowColor}`} style={{ width: `${flow}%` }} />
+              </div>
+              <span className="text-sm text-ink3">{flow}% on track</span>
+              {stats.overdue > 0 && <span className="badge-red">{stats.overdue} overdue</span>}
+              {stats.urgent > 0 && <span className="badge-amber">{stats.urgent} urgent</span>}
+            </div>
+          ) : (
+            <span className="text-sm text-ink4 mt-1 block">No tasks in ClickUp</span>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {member.filesReport && (
-            <span className={`text-[10px] font-bold ${filed ? 'text-green-700' : 'text-red-600'}`}>
-              {filed ? '● RPT' : '✕ RPT'}
+            <span className={filed ? 'badge-green' : 'badge-red'}>
+              {filed ? 'Filed' : 'Missing'}
             </span>
           )}
-          <span className="text-ink4 text-xs">{open ? '▲' : '▼'}</span>
+          {stats && <span className="text-sm text-ink4">{stats.total} tasks</span>}
+          <span className="text-ink4 text-sm ml-1">{open ? '▲' : '▼'}</span>
         </div>
       </button>
 
       {open && (
-        <div className="border-t border-sand3 px-4 py-2">
+        <div className="border-t border-sand3 px-5 py-1">
           {tasks.length === 0 ? (
-            <p className="text-xs text-ink3 py-2">No active tasks found in ClickUp.</p>
+            <p className="text-sm text-ink3 py-3">No active tasks found in ClickUp.</p>
           ) : (
             <>
               {tasks.slice(0, 15).map((t) => <TaskRow key={t.id} t={t} />)}
@@ -131,7 +127,7 @@ function MemberCard({
                   href="https://app.clickup.com/10643959/home"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs text-ink4 hover:underline py-2"
+                  className="block text-sm text-accent hover:underline py-3"
                 >
                   +{tasks.length - 15} more tasks in ClickUp ↗
                 </a>
@@ -269,37 +265,50 @@ export default function DashboardPage() {
       </div>
 
       {/* Key metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         {[
           {
-            value: loading ? '…' : `${filed.length}/${REPORT_MEMBERS.length}`,
+            value: loading ? '—' : `${filed.length}/${REPORT_MEMBERS.length}`,
             label: 'Reports Filed',
             sub: loading ? '' : missing.length ? `${missing.length} missing` : 'All filed ✓',
-            alert: !loading && missing.length > 0,
+            color: !loading && missing.length > 0 ? 'text-danger' : 'text-success',
+            bar: !loading ? Math.round((filed.length / REPORT_MEMBERS.length) * 100) : null,
+            barColor: !loading && missing.length > 0 ? 'bg-danger' : 'bg-success',
           },
           {
-            value: loading ? '…' : (clickup?.urgent ?? '—'),
+            value: loading ? '—' : (clickup?.urgent ?? '—'),
             label: 'Urgent Tasks',
-            sub: 'Across all team members',
-            alert: !loading && (clickup?.urgent ?? 0) > 0,
+            sub: 'Need immediate action',
+            color: !loading && (clickup?.urgent ?? 0) > 0 ? 'text-danger' : 'text-ink',
+            bar: null,
+            barColor: '',
           },
           {
-            value: loading ? '…' : `${clickup?.overduePercent ?? '—'}%`,
+            value: loading ? '—' : `${clickup?.overduePercent ?? '—'}%`,
             label: 'CRM Overdue',
             sub: loading ? '' : clickup ? `${clickup.overdue} of ${clickup.totalTasks} tasks` : '',
-            alert: !loading && (clickup?.overduePercent ?? 0) > 50,
+            color: !loading && (clickup?.overduePercent ?? 0) > 50 ? 'text-danger' : 'text-warning',
+            bar: !loading && clickup ? clickup.overduePercent : null,
+            barColor: !loading && (clickup?.overduePercent ?? 0) > 50 ? 'bg-danger' : 'bg-warning',
           },
           {
-            value: loading ? '…' : (clickup?.totalTasks ?? '—'),
-            label: 'Total Active Tasks',
+            value: loading ? '—' : (clickup?.totalTasks ?? '—'),
+            label: 'Active Tasks',
             sub: loading ? '' : `${clickup?.completed ?? 0} completed`,
-            alert: false,
+            color: 'text-ink',
+            bar: null,
+            barColor: '',
           },
         ].map((s) => (
-          <div key={s.label} className={`border p-3 ${s.alert ? 'border-red-400 bg-red-50' : 'border-sand3'} ${loading ? 'animate-pulse' : ''}`}>
-            <div className="font-serif font-black text-3xl">{s.value}</div>
-            <div className="text-xs font-bold uppercase tracking-widest text-ink3 mt-0.5">{s.label}</div>
-            {s.sub && <div className="text-xs text-ink4 mt-0.5">{s.sub}</div>}
+          <div key={s.label} className={`stat-tile ${loading ? 'animate-pulse' : ''}`}>
+            <div className={`stat-value ${s.color}`}>{s.value}</div>
+            <div className="stat-label">{s.label}</div>
+            {s.sub && <div className="stat-sub">{s.sub}</div>}
+            {s.bar !== null && (
+              <div className="progress-track mt-2">
+                <div className={`progress-fill ${s.barColor}`} style={{ width: `${Math.min(s.bar ?? 0, 100)}%` }} />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -333,26 +342,29 @@ export default function DashboardPage() {
       {/* OKR Pulse */}
       <div className="slbl">OKR Pulse</div>
       <div className="card mb-6">
-        <div className="card-body p-0">
-          <table className="w-full text-sm">
-            <tbody>
-              {OKRS.map((o) => (
-                <tr key={o.id} className="border-b border-sand3 last:border-0">
-                  <td className="px-4 py-2.5 font-mono text-xs text-ink4 w-16">{o.id}</td>
-                  <td className="px-4 py-2.5 font-bold">{o.label}</td>
-                  <td className="px-4 py-2.5 w-32">
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-sand3">
-                        <div className="h-full bg-black" style={{ width: `${Math.max(o.pct, 2)}%` }} />
-                      </div>
-                      <span className="font-mono text-xs w-8 text-right">{o.pct}%</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 text-xs text-ink3 hidden sm:table-cell">{o.note}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="divide-y divide-sand3">
+          {OKRS.map((o) => {
+            const barColor = o.pct >= 80 ? 'bg-success' : o.pct >= 40 ? 'bg-accent' : o.pct >= 20 ? 'bg-warning' : 'bg-danger'
+            const textColor = o.pct >= 80 ? 'text-success' : o.pct >= 40 ? 'text-accent' : o.pct >= 20 ? 'text-warning' : 'text-danger'
+            return (
+              <div key={o.id} className="px-5 py-4">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-ink4 w-14">{o.id}</span>
+                    <span className="text-base font-semibold">{o.label}</span>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <span className="text-sm text-ink3 hidden sm:block">{o.note}</span>
+                    <span className={`text-lg font-bold tabular-nums ${textColor}`}>{o.pct}%</span>
+                  </div>
+                </div>
+                <div className="progress-track">
+                  <div className={`progress-fill ${barColor}`} style={{ width: `${Math.max(o.pct, 1)}%` }} />
+                </div>
+                <p className="text-sm text-ink4 mt-1 sm:hidden">{o.note}</p>
+              </div>
+            )
+          })}
         </div>
       </div>
     </div>

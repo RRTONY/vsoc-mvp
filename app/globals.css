@@ -7,9 +7,10 @@
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
+    font-size: 16px;
   }
   body {
-    @apply bg-sand text-ink font-sans;
+    @apply bg-sand2 text-ink font-sans;
   }
   button, a, [role="button"] {
     cursor: pointer;
@@ -17,62 +18,113 @@
 }
 
 @layer components {
+  /* ── Cards ─────────────────────────────── */
   .card {
-    @apply bg-sand border border-sand3 mb-4;
+    @apply bg-sand rounded-lg shadow-card border border-sand4 mb-4;
   }
   .card-hd {
-    @apply px-4 py-3 border-b border-sand3 flex items-center justify-between;
+    @apply px-5 py-4 border-b border-sand3 flex items-center justify-between;
   }
   .card-ti {
-    @apply text-sm font-extrabold uppercase tracking-widest;
+    @apply text-sm font-bold text-ink;
   }
   .card-body {
-    @apply p-4;
+    @apply p-5;
   }
+
+  /* ── Section label ──────────────────────── */
   .slbl {
-    @apply text-xs font-extrabold uppercase tracking-widest text-ink3 mb-3 mt-6;
+    @apply text-xs font-bold uppercase tracking-widest text-ink3 mb-3 mt-8;
   }
+
+  /* ── Stat tile ──────────────────────────── */
+  .stat-tile {
+    @apply bg-sand rounded-lg shadow-card border border-sand4 p-5 flex flex-col gap-1;
+  }
+  .stat-value {
+    @apply text-3xl font-bold tabular-nums leading-none;
+  }
+  .stat-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-ink3 mt-1;
+  }
+  .stat-sub {
+    @apply text-sm text-ink3 mt-0.5;
+  }
+
+  /* ── Progress bar ───────────────────────── */
+  .progress-track {
+    @apply w-full h-2 bg-sand3 rounded-full overflow-hidden;
+  }
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+
+  /* ── Badges ─────────────────────────────── */
   .badge {
-    @apply text-xs font-bold px-2 py-0.5 border border-sand3 bg-sand2;
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full border border-sand4 bg-sand3 text-ink3;
   }
   .badge-red {
-    @apply text-xs font-bold px-2 py-0.5 bg-ink text-sand;
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-danger-light text-danger;
   }
+  .badge-green {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-success-light text-success;
+  }
+  .badge-amber {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-warning-light text-warning;
+  }
+  .badge-accent {
+    @apply text-xs font-semibold px-2 py-0.5 rounded-full bg-accent-light text-accent;
+  }
+
+  /* ── Alerts ─────────────────────────────── */
   .alert {
-    @apply text-sm p-3 mb-3 border-l-4 font-medium;
+    @apply text-sm p-4 mb-3 rounded-lg font-medium flex items-start gap-3;
   }
   .alert-red {
-    @apply border-ink bg-sand2;
+    @apply bg-danger-light text-danger border border-danger/20;
   }
   .alert-amber {
-    @apply border-ink3 bg-sand2;
+    @apply bg-warning-light text-warning border border-warning/20;
   }
   .alert-blue {
-    @apply border-ink4 bg-sand2;
+    @apply bg-accent-light text-accent border border-accent/20;
   }
+
+  /* ── Form ───────────────────────────────── */
   .field-input {
-    @apply w-full border border-sand3 px-3 py-2 text-sm font-sans bg-sand focus:outline-none focus:border-ink transition-colors;
+    @apply w-full border border-sand4 rounded-lg px-4 py-2.5 text-base font-sans bg-sand
+           focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-colors;
   }
   .field-label {
-    @apply block text-xs font-bold uppercase tracking-widest text-ink3 mb-1;
+    @apply block text-sm font-semibold text-ink2 mb-1.5;
   }
+
+  /* ── Buttons ────────────────────────────── */
   .btn-primary {
-    @apply bg-ink text-sand font-bold text-sm px-6 py-3 hover:bg-ink2 transition-colors cursor-pointer border-0;
+    @apply bg-accent text-white font-semibold text-sm px-5 py-2.5 rounded-lg
+           hover:bg-accent-dark transition-colors cursor-pointer border-0 shadow-sm;
   }
   .btn-secondary {
-    @apply bg-sand border border-sand3 text-ink font-bold text-xs px-3 py-1.5 hover:bg-sand2 transition-colors cursor-pointer;
+    @apply bg-sand border border-sand4 text-ink font-semibold text-sm px-4 py-2 rounded-lg
+           hover:bg-sand3 transition-colors cursor-pointer shadow-sm;
   }
+  .btn-danger {
+    @apply bg-danger text-white font-semibold text-sm px-5 py-2.5 rounded-lg
+           hover:opacity-90 transition-colors cursor-pointer border-0;
+  }
+
+  /* ── Checklist ──────────────────────────── */
   .check-row {
-    @apply flex items-start gap-2 py-2 cursor-pointer;
+    @apply flex items-start gap-3 py-2 cursor-pointer;
   }
   .check-box {
-    @apply w-4 h-4 border border-ink3 mt-0.5 flex-shrink-0 flex items-center justify-center;
+    @apply w-4 h-4 border-2 border-sand4 rounded mt-0.5 flex-shrink-0 flex items-center justify-center;
   }
   .check-box.checked {
-    @apply bg-ink border-ink;
+    @apply bg-accent border-accent;
   }
   .check-box.checked::after {
     content: '✓';
-    @apply text-sand text-[10px] font-bold;
+    @apply text-white text-[10px] font-bold;
   }
 }
