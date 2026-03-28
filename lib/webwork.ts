@@ -50,22 +50,27 @@ export async function getWeekHours(userId: number, weekDates: string[]): Promise
 
 export async function buildWebWorkSnapshot() {
   const weekDates = getCurrentWeekDates()
+  const lastWeekDates = getLastWeekDates()
   const results = await Promise.all(
     Object.entries(MEMBER_IDS).map(async ([username, userId]) => {
       try {
-        const { totalMinutes, byDay } = await getWeekHours(userId, weekDates)
+        const [{ totalMinutes, byDay }, { totalMinutes: lastMinutes }] = await Promise.all([
+          getWeekHours(userId, weekDates),
+          getWeekHours(userId, lastWeekDates),
+        ])
         return {
           username,
           totalMinutes,
           totalHours: Math.round(totalMinutes / 60 * 10) / 10,
+          lastWeekHours: Math.round(lastMinutes / 60 * 10) / 10,
           byDay: byDay.map(d => ({ date: d.date, minutes: d.minutes, hours: Math.round(d.minutes / 60 * 10) / 10 })),
         }
       } catch {
-        return { username, totalMinutes: 0, totalHours: 0, byDay: [] }
+        return { username, totalMinutes: 0, totalHours: 0, lastWeekHours: 0, byDay: [] }
       }
     })
   )
-  return { week: weekDates, members: results }
+  return { week: weekDates, lastWeek: lastWeekDates, members: results }
 }
 
 // Returns Mon–Sun dates for the current week
@@ -74,6 +79,19 @@ export function getCurrentWeekDates(): string[] {
   const day = today.getDay() // 0=Sun
   const monday = new Date(today)
   monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1))
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return d.toISOString().slice(0, 10)
+  })
+}
+
+// Returns Mon–Sun dates for the previous week
+export function getLastWeekDates(): string[] {
+  const today = new Date()
+  const day = today.getDay()
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - (day === 0 ? 6 : day - 1) - 7)
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday)
     d.setDate(monday.getDate() + i)

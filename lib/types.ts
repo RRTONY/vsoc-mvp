@@ -32,13 +32,19 @@ export interface ClickUpData {
 
 export interface SlackData {
   weeklyReports?: { filed: string[]; missing: string[]; week: string }
-  slackStats?: { totalMessages: number; activeMembers: number; channels: number }
+  slackStats?: {
+    totalMessages: number
+    activeMembers: number
+    channels: number
+    messagesByDay?: { date: string; count: number }[]
+  }
   error?: string
 }
 
 export interface WebWorkMember {
   username: string
   totalHours: number
+  lastWeekHours?: number
   byDay: { date: string; hours: number }[]
 }
 

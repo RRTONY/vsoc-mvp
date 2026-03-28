@@ -87,9 +87,21 @@ export async function buildSlackSnapshot() {
     }
   }
 
-  const messages: Array<{ user?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
+  const messages: Array<{ user?: string; ts?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
   const posters = Array.from(new Set(messages.map(m => m.user ? userMap[m.user] : '').filter(Boolean)))
   const posterHandles = Array.from(new Set(messages.map(m => m.user ? handleMap[m.user] : '').filter(Boolean)))
+
+  // Group messages by day (YYYY-MM-DD)
+  const dayCounts: Record<string, number> = {}
+  for (const msg of messages) {
+    if (msg.ts) {
+      const d = new Date(parseFloat(msg.ts) * 1000).toISOString().slice(0, 10)
+      dayCounts[d] = (dayCounts[d] ?? 0) + 1
+    }
+  }
+  const messagesByDay = Object.entries(dayCounts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }))
 
   const filed: string[] = []
   const missing: string[] = []
@@ -108,6 +120,7 @@ export async function buildSlackSnapshot() {
       totalMessages: messages.length,
       activeMembers: allUsers.filter(m => !m.deleted && !m.is_bot).length,
       channels: ((channelsData as { channels?: unknown[] }).channels ?? []).length,
+      messagesByDay,
     },
   }
 }

@@ -7,9 +7,13 @@ import { TEAM, REPORT_MEMBERS } from '@/lib/team'
 import type { Task, ClickUpData, SlackData, WebWorkMember, Meeting } from '@/lib/types'
 import { useMe } from '@/hooks/useMe'
 import StaleBadge from '@/components/StaleBadge'
+import MeetingTimeline from '@/components/MeetingTimeline'
 import dynamic from 'next/dynamic'
 const HoursBar = dynamic(() => import('@/components/charts/HoursBar'), { ssr: false })
 const OkrRings = dynamic(() => import('@/components/charts/OkrRing'), { ssr: false })
+const TrendCards = dynamic(() => import('@/components/charts/TrendCards'), { ssr: false })
+const DayStackedBar = dynamic(() => import('@/components/charts/DayStackedBar'), { ssr: false })
+const SlackHeatMap = dynamic(() => import('@/components/charts/SlackHeatMap'), { ssr: false })
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -177,7 +181,7 @@ export default function ReportsPage() {
   const [dailyHistory, setDailyHistory] = useState<DailyReport[]>([])
   const [dailyLoading, setDailyLoading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
-  const [webworkData, setWebworkData] = useState<{ week: string[]; members: WebWorkMember[]; error?: string } | null>(null)
+  const [webworkData, setWebworkData] = useState<{ week: string[]; lastWeek?: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
   const prevKey = useRef(refreshKey)
@@ -345,11 +349,21 @@ export default function ReportsPage() {
                 </span>
               </div>
 
+              {/* Trend cards */}
+              <TrendCards
+                members={webworkData.members}
+                weekLabel={webworkData.week?.[0] ?? ''}
+                lastWeekLabel={webworkData.lastWeek?.[0] ?? 'prior week'}
+              />
+
               {/* Bar chart */}
               <div className="card px-4 pt-4 pb-2">
                 <div className="slbl mb-0 text-xs">Hours This Week</div>
                 <HoursBar members={webworkData.members} />
               </div>
+
+              {/* Stacked by day */}
+              <DayStackedBar members={webworkData.members} />
 
               {/* Detail rows */}
               <div className="card divide-y divide-sand3">
@@ -498,42 +512,32 @@ export default function ReportsPage() {
       {/* Slack KPIs */}
       {!loading && slackStats && (
         <Section title="Slack Communication KPIs">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'Messages This Week', value: slackStats.totalMessages.toLocaleString() },
               { label: 'Active Members', value: slackStats.activeMembers },
               { label: 'Public Channels', value: slackStats.channels },
             ].map((s) => (
-              <div key={s.label} className="border border-sand3 p-3">
-                <div className="font-serif font-black text-2xl">{s.value}</div>
-                <div className="text-xs font-bold uppercase tracking-widest text-ink3 mt-0.5">{s.label}</div>
+              <div key={s.label} className="stat-tile">
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
               </div>
             ))}
           </div>
+          {slackStats.messagesByDay && slackStats.messagesByDay.length > 0 && (
+            <div className="card px-4 py-4">
+              <SlackHeatMap messagesByDay={slackStats.messagesByDay} />
+            </div>
+          )}
         </Section>
       )}
 
-      {/* Fireflies meetings */}
+      {/* Fireflies meetings — timeline */}
       <Section title={`Meeting Intelligence${meetings.length ? ` (${meetings.length})` : ''}`}>
         {loading ? (
-          <div className="border border-sand3 p-4 animate-pulse text-sm text-ink3">Loading meetings…</div>
-        ) : meetings.length === 0 ? (
-          <div className="border border-sand3 p-4 text-sm text-ink3">
-            No recent meetings found in Fireflies.{' '}
-            <a href="https://app.fireflies.ai" target="_blank" rel="noopener noreferrer" className="underline">Open Fireflies ↗</a>
-          </div>
+          <div className="card p-4 animate-pulse text-sm text-ink4">Loading meetings…</div>
         ) : (
-          <div>
-            {meetings.map((m) => <MeetingCard key={m.id} m={m} />)}
-            <a
-              href="https://app.fireflies.ai"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mt-2 text-xs font-mono border border-black/30 px-2 py-0.5 hover:bg-black hover:text-white transition-colors"
-            >
-              All meetings in Fireflies ↗
-            </a>
-          </div>
+          <MeetingTimeline meetings={meetings} />
         )}
       </Section>
 
