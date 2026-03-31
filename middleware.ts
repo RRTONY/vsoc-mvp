@@ -4,6 +4,11 @@ import { COOKIE_NAME, verifySession } from '@/lib/auth'
 export async function middleware(req: NextRequest) {
   // Skip auth for login page and auth API routes
   const { pathname } = req.nextUrl
+  // Allow cron POST requests authenticated by x-cron-secret header
+  if (req.method === 'POST' && req.headers.get('x-cron-secret') === process.env.CRON_SECRET) {
+    return NextResponse.next()
+  }
+
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/signup') ||

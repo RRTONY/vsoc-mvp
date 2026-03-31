@@ -34,8 +34,9 @@ export async function GET(req: NextRequest) {
       }
 
       // Build full storage paths
+      const IMAGE_EXTS = ['.png', '.jpg', '.jpeg', '.webp']
       const paths = files
-        .filter(f => f.name.toLowerCase().endsWith('.png'))
+        .filter(f => IMAGE_EXTS.some(ext => f.name.toLowerCase().endsWith(ext)))
         .map(f => `${prefix}/${f.name}`)
 
       if (paths.length === 0) {
