@@ -67,7 +67,13 @@ function weekLabel() {
 export { weekLabel }
 
 export async function buildSlackSnapshot() {
-  const oldest = String(Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000))
+  // Reports are filed Fri–Tue/Wed. Look back to most recent Friday to catch all submissions.
+  const now = new Date()
+  const daysSinceFriday = (now.getDay() + 2) % 7  // Fri=0, Sat=1, Sun=2, Mon=3, Tue=4, Wed=5, Thu=6
+  const friday = new Date(now)
+  friday.setDate(now.getDate() - daysSinceFriday)
+  friday.setHours(0, 0, 0, 0)
+  const oldest = String(Math.floor(friday.getTime() / 1000))
 
   const [historyData, membersData, channelsData] = await Promise.all([
     channelHistory(SLACK_CHANNEL_WEEKLY_REPORTS, oldest),
