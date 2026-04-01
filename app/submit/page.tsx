@@ -53,7 +53,6 @@ export default function SubmitPage() {
         toast(`✓ Report submitted for ${name}`)
         setTimeout(() => {
           formRef.current?.reset()
-          setChecks({ invoiceSubmitted: false, webworkConfirmed: false, emailMeterConfirmed: false, slackReportConfirmed: false })
           setHours({})
           setSubmitted(false)
         }, 3000)
