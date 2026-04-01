@@ -93,9 +93,17 @@ export async function buildSlackSnapshot() {
     }
   }
 
-  const messages: Array<{ user?: string; ts?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
-  const posters = Array.from(new Set(messages.map(m => m.user ? userMap[m.user] : '').filter(Boolean)))
-  const posterHandles = Array.from(new Set(messages.map(m => m.user ? handleMap[m.user] : '').filter(Boolean)))
+  const messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
+
+  // Reports posted via Slack Workflow have subtype='bot_message' and username='Rob's Weekly Report'
+  // Regular user posts have a user ID resolved via userMap
+  const posters = Array.from(new Set([
+    ...messages.map(m => m.user ? userMap[m.user] : '').filter(Boolean),
+    ...messages.filter(m => m.subtype === 'bot_message' && m.username).map(m => m.username!),
+  ]))
+  const posterHandles = Array.from(new Set(
+    messages.map(m => m.user ? handleMap[m.user] : '').filter(Boolean)
+  ))
 
   // Group messages by day (YYYY-MM-DD)
   const dayCounts: Record<string, number> = {}
