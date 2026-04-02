@@ -66,14 +66,58 @@ function weekLabel() {
 
 export { weekLabel }
 
+// Returns most recent Friday (start of current week window)
+function getMostRecentFriday(from: Date): Date {
+  const d = new Date(from)
+  const jsDay = d.getDay() // Sun=0 Mon=1 ... Sat=6
+  const daysSinceFriday = (jsDay + 2) % 7 // Fri=0 Sat=1 Sun=2 Mon=3 Tue=4 Wed=5 Thu=6
+  d.setDate(d.getDate() - daysSinceFriday)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function getPostersFromMessages(
+  messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string }>,
+  userMap: Record<string, string>,
+  handleMap: Record<string, string>,
+  fromTs: number,
+  toTs: number
+) {
+  const window = messages.filter(m => {
+    const ts = parseFloat(m.ts ?? '0') * 1000
+    return ts >= fromTs && ts < toTs
+  })
+  return {
+    names: Array.from(new Set([
+      ...window.map(m => m.user ? userMap[m.user] : '').filter(Boolean),
+      ...window.filter(m => m.subtype === 'bot_message' && m.username).map(m => m.username!),
+    ])),
+    handles: Array.from(new Set(window.map(m => m.user ? handleMap[m.user] : '').filter(Boolean))),
+  }
+}
+
+function whoFiled(names: string[], handles: string[]): string[] {
+  const filed: string[] = []
+  for (const member of TEAM_NAMES) {
+    const aliases = SLACK_MATCH[member] ?? [member.split(' ')[0].toLowerCase()]
+    const didFile =
+      names.some(p => aliases.some(a => p.toLowerCase().includes(a))) ||
+      handles.some(h => aliases.some(a => h.toLowerCase().includes(a)))
+    if (didFile) filed.push(member)
+  }
+  return filed
+}
+
 export async function buildSlackSnapshot() {
-  // Reports are filed Fri–Tue/Wed. Look back to most recent Friday to catch all submissions.
   const now = new Date()
-  const daysSinceFriday = (now.getDay() + 2) % 7  // Fri=0, Sat=1, Sun=2, Mon=3, Tue=4, Wed=5, Thu=6
-  const friday = new Date(now)
-  friday.setDate(now.getDate() - daysSinceFriday)
-  friday.setHours(0, 0, 0, 0)
-  const oldest = String(Math.floor(friday.getTime() / 1000))
+
+  // Week 1 window: Friday two weeks ago → Friday last week
+  // Week 2 window: Friday last week → now
+  const week2Start = getMostRecentFriday(now)
+  const week1Start = new Date(week2Start)
+  week1Start.setDate(week2Start.getDate() - 7)
+
+  const oldest = String(Math.floor(week1Start.getTime() / 1000))
 
   const [historyData, membersData, channelsData] = await Promise.all([
     channelHistory(SLACK_CHANNEL_WEEKLY_REPORTS, oldest),
@@ -95,15 +139,16 @@ export async function buildSlackSnapshot() {
 
   const messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
 
-  // Reports posted via Slack Workflow have subtype='bot_message' and username='Rob's Weekly Report'
-  // Regular user posts have a user ID resolved via userMap
-  const posters = Array.from(new Set([
-    ...messages.map(m => m.user ? userMap[m.user] : '').filter(Boolean),
-    ...messages.filter(m => m.subtype === 'bot_message' && m.username).map(m => m.username!),
-  ]))
-  const posterHandles = Array.from(new Set(
-    messages.map(m => m.user ? handleMap[m.user] : '').filter(Boolean)
-  ))
+  // Week 1 and Week 2 filing detection
+  const week1 = getPostersFromMessages(messages, userMap, handleMap, week1Start.getTime(), week2Start.getTime())
+  const week2 = getPostersFromMessages(messages, userMap, handleMap, week2Start.getTime(), now.getTime() + 1)
+
+  const filedWeek1 = whoFiled(week1.names, week1.handles)
+  const filedWeek2 = whoFiled(week2.names, week2.handles)
+
+  // filed = union of both weeks (for backwards compat with exception report)
+  const filed = Array.from(new Set([...filedWeek1, ...filedWeek2]))
+  const missing = TEAM_NAMES.filter(m => !filed.includes(m))
 
   // Group messages by day (YYYY-MM-DD)
   const dayCounts: Record<string, number> = {}
@@ -117,19 +162,13 @@ export async function buildSlackSnapshot() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }))
 
-  const filed: string[] = []
-  const missing: string[] = []
-  for (const member of TEAM_NAMES) {
-    const aliases = SLACK_MATCH[member] ?? [member.split(' ')[0].toLowerCase()]
-    const didFile =
-      posters.some(p => aliases.some(a => p.toLowerCase().includes(a))) ||
-      posterHandles.some(h => aliases.some(a => h.toLowerCase().includes(a)))
-    if (didFile) filed.push(member)
-    else missing.push(member)
-  }
+  // Week labels e.g. "Mar 27" and "Apr 3"
+  const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const week1Label = `${fmtDate(week1Start)}–${fmtDate(new Date(week2Start.getTime() - 86400000))}`
+  const week2Label = `${fmtDate(week2Start)}–${fmtDate(now)}`
 
   return {
-    weeklyReports: { filed, missing, week: weekLabel() },
+    weeklyReports: { filed, missing, week: weekLabel(), filedWeek1, filedWeek2, week1Label, week2Label },
     slackStats: {
       totalMessages: messages.length,
       activeMembers: allUsers.filter(m => !m.deleted && !m.is_bot).length,

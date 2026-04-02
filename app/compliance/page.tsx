@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRefresh } from '@/components/RefreshContext'
 import { ShareSlackButton } from '@/components/ShareButtons'
 import { useMe } from '@/hooks/useMe'
+import { HOURS_MEMBERS } from '@/lib/team'
 
 interface CheckState {
   invoiceSubmitted: boolean
@@ -24,27 +25,36 @@ interface Member {
   role: string
   rate: number
   filed: boolean
+  filedWeek1: boolean
+  filedWeek2: boolean
   bt: string
 }
 
 const BASE_TEAM: Member[] = [
-  { name: 'Rob Holmes', role: 'BD · Grants', rate: 91, filed: true, bt: 'Not integrated' },
-  { name: 'Alex Veytsel', role: 'Equity Partner', rate: 82, filed: false, bt: 'Not integrated' },
-  { name: 'Josh Bykowski', role: 'Legal · BD', rate: 73, filed: false, bt: 'Not integrated' },
-  { name: 'Kim', role: 'Executive Ops', rate: 100, filed: true, bt: 'Narrative only' },
-  { name: 'Chase', role: 'Executive Ops', rate: 100, filed: true, bt: 'Narrative only' },
-  { name: 'Daniel Baez', role: 'Webmaster', rate: 100, filed: true, bt: 'N/A (new)' },
-  { name: 'Ben Sheppard', role: 'ImpactSoul Contractor', rate: 0, filed: false, bt: 'First due Mar 23' },
-  { name: 'Tony', role: 'CEO', rate: 0, filed: false, bt: 'N/A' },
+  { name: 'Rob Holmes',   role: 'BD · Grants',           rate: 91,  filed: false, filedWeek1: false, filedWeek2: false, bt: 'Not integrated' },
+  { name: 'Alex Veytsel', role: 'Equity Partner',         rate: 82,  filed: false, filedWeek1: false, filedWeek2: false, bt: 'Not integrated' },
+  { name: 'Josh Bykowski', role: 'Legal · BD',            rate: 73,  filed: false, filedWeek1: false, filedWeek2: false, bt: 'Not integrated' },
+  { name: 'Kim',          role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, bt: 'Narrative only' },
+  { name: 'Chase',        role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, bt: 'Narrative only' },
+  { name: 'Daniel Baez',  role: 'Webmaster',              rate: 100, filed: false, filedWeek1: false, filedWeek2: false, bt: 'N/A (new)' },
+  { name: 'Ben Sheppard', role: 'ImpactSoul Contractor',  rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, bt: 'First due Mar 23' },
+  { name: 'Tony',         role: 'CEO',                    rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, bt: 'N/A' },
 ]
 
 
 export default function CompliancePage() {
   const { isAdmin, isOwner } = useMe()
   const [team, setTeam] = useState<Member[]>(BASE_TEAM)
+  const [week1Label, setWeek1Label] = useState('Week 1')
+  const [week2Label, setWeek2Label] = useState('Week 2')
   const [checks, setChecks] = useState<CheckState>({ invoiceSubmitted: false, webworkConfirmed: false, emailMeterConfirmed: false, slackReportConfirmed: false })
   const [urls, setUrls] = useState<Record<string, string>>({})
+  const [hours, setHours] = useState<Record<string, string>>({})
   const { refreshKey } = useRefresh()
+
+  function totalHours() {
+    return Object.values(hours).reduce((sum, v) => sum + (parseFloat(v) || 0), 0)
+  }
 
   function toggleCheck(key: keyof CheckState) {
     setChecks((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -56,10 +66,16 @@ export default function CompliancePage() {
       .then((d) => {
         if (!d.weeklyReports) return
         const filed: string[] = d.weeklyReports.filed ?? []
+        const filedWeek1: string[] = d.weeklyReports.filedWeek1 ?? []
+        const filedWeek2: string[] = d.weeklyReports.filedWeek2 ?? []
+        if (d.weeklyReports.week1Label) setWeek1Label(d.weeklyReports.week1Label)
+        if (d.weeklyReports.week2Label) setWeek2Label(d.weeklyReports.week2Label)
         setTeam((prev) =>
           prev.map((m) => ({
             ...m,
             filed: filed.includes(m.name),
+            filedWeek1: filedWeek1.includes(m.name),
+            filedWeek2: filedWeek2.includes(m.name),
           }))
         )
       })
@@ -82,10 +98,11 @@ export default function CompliancePage() {
             <thead>
               <tr className="border-b border-sand3">
                 <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Team Member</th>
-                <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Role</th>
-                {isOwner && <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">Rate</th>}
-                <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">This Week</th>
-                <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 pl-4">Braintrust</th>
+                <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 hidden sm:table-cell">Role</th>
+                {isOwner && <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 hidden sm:table-cell">Rate</th>}
+                <th className="text-center py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">{week1Label}</th>
+                <th className="text-center py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">{week2Label}</th>
+                <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 pl-4 hidden sm:table-cell">Braintrust</th>
               </tr>
             </thead>
             <tbody>
@@ -94,15 +111,21 @@ export default function CompliancePage() {
                 return (
                   <tr key={m.name} className="border-b border-sand3 last:border-0">
                     <td className="py-2.5 font-bold">{m.name}</td>
-                    <td className="py-2.5 text-ink3 text-xs">{m.role}</td>
-                    {isOwner && <td className={`py-2.5 font-mono font-bold text-right ${rateColor}`}>{m.rate}%</td>}
-                    <td className="py-2.5 text-right">
-                      {m.filed
-                        ? <span className="font-mono text-xs font-bold">● FILED</span>
-                        : <span className="font-mono text-xs font-bold text-ink4">✕ MISSING</span>
+                    <td className="py-2.5 text-ink3 text-xs hidden sm:table-cell">{m.role}</td>
+                    {isOwner && <td className={`py-2.5 font-mono font-bold text-right hidden sm:table-cell ${rateColor}`}>{m.rate}%</td>}
+                    <td className="py-2.5 text-center">
+                      {m.filedWeek1
+                        ? <span className="text-green-600 font-bold text-sm">✓</span>
+                        : <span className="text-ink4 font-bold text-sm">✕</span>
                       }
                     </td>
-                    <td className="py-2.5 text-xs text-ink3 pl-4">{m.bt}</td>
+                    <td className="py-2.5 text-center">
+                      {m.filedWeek2
+                        ? <span className="text-green-600 font-bold text-sm">✓</span>
+                        : <span className="text-ink4 font-bold text-sm">✕</span>
+                      }
+                    </td>
+                    <td className="py-2.5 text-xs text-ink3 pl-4 hidden sm:table-cell">{m.bt}</td>
                   </tr>
                 )
               })}
@@ -137,6 +160,39 @@ export default function CompliancePage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="slbl">Hours Billed This Period</div>
+      <div className="card">
+        <div className="card-hd">
+          <div className="card-ti">Hours Billed This Period</div>
+          <span className="badge">No dollar amounts</span>
+        </div>
+        <div className="card-body">
+          <div className="alert alert-amber mb-4 text-xs">Hours only. Must match WebWork within 0.5hr tolerance. Do not include rates or dollar amounts.</div>
+          <div className="space-y-2">
+            {HOURS_MEMBERS.map((member, i) => (
+              <div key={member} className="flex items-center gap-3">
+                <span className="text-sm font-bold w-32 flex-shrink-0">{member}</span>
+                <input
+                  className="field-input w-24 text-right font-mono"
+                  type="number"
+                  min="0"
+                  max="200"
+                  step="0.5"
+                  placeholder="0"
+                  value={hours[member] ?? ''}
+                  onChange={(e) => setHours((h) => ({ ...h, [member]: e.target.value }))}
+                />
+                <span className="text-xs text-ink3">hrs</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between items-center mt-4 pt-4 border-t border-sand3">
+            <span className="text-xs font-bold uppercase tracking-widest text-ink3">Total Hours</span>
+            <span className="font-serif font-black text-2xl">{totalHours().toFixed(1)} hrs</span>
+          </div>
         </div>
       </div>
 

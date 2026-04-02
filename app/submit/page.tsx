@@ -2,18 +2,13 @@
 
 import { useState, useRef } from 'react'
 import { useToast } from '@/components/Toast'
-import { TEAM_NAMES, HOURS_MEMBERS } from '@/lib/team'
+import { TEAM_NAMES } from '@/lib/team'
 
 export default function SubmitPage() {
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
-  const [hours, setHours] = useState<Record<string, string>>({})
   const formRef = useRef<HTMLFormElement>(null)
-
-  function totalHours() {
-    return Object.values(hours).reduce((sum, v) => sum + (parseFloat(v) || 0), 0)
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -21,11 +16,6 @@ export default function SubmitPage() {
     const fd = new FormData(form)
     const name = fd.get('name') as string
     if (!name) { toast('Please select your name first'); return }
-
-    const hoursObj: Record<string, number> = {}
-    HOURS_MEMBERS.forEach((m, i) => {
-      hoursObj[m] = parseFloat(fd.get(`hours_${i}`) as string) || 0
-    })
 
     const payload = {
       name,
@@ -37,7 +27,6 @@ export default function SubmitPage() {
       priorities: fd.get('priorities') as string,
       blockers: fd.get('blockers') as string,
       win: fd.get('win') as string,
-      hours: hoursObj,
     }
 
     setSubmitting(true)
@@ -53,7 +42,6 @@ export default function SubmitPage() {
         toast(`✓ Report submitted for ${name}`)
         setTimeout(() => {
           formRef.current?.reset()
-          setHours({})
           setSubmitted(false)
         }, 3000)
       } else {
@@ -107,39 +95,6 @@ export default function SubmitPage() {
           <div>
             <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">7. Win of the Week</label>
             <input name="win" className="field-input" type="text" placeholder="One sentence..." />
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-hd">
-          <div className="card-ti">Hours Billed This Period</div>
-          <span className="badge">No dollar amounts</span>
-        </div>
-        <div className="card-body">
-          <div className="alert alert-amber mb-4 text-xs">Hours only. Must match WebWork within 0.5hr tolerance. Do not include rates or dollar amounts.</div>
-          <div className="space-y-2">
-            {HOURS_MEMBERS.map((member, i) => (
-              <div key={member} className="flex items-center gap-3">
-                <span className="text-sm font-bold w-32 flex-shrink-0">{member}</span>
-                <input
-                  name={`hours_${i}`}
-                  className="field-input w-24 text-right font-mono"
-                  type="number"
-                  min="0"
-                  max="200"
-                  step="0.5"
-                  placeholder="0"
-                  value={hours[member] ?? ''}
-                  onChange={(e) => setHours((h) => ({ ...h, [member]: e.target.value }))}
-                />
-                <span className="text-xs text-ink3">hrs</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between items-center mt-4 pt-4 border-t border-sand3">
-            <span className="text-xs font-bold uppercase tracking-widest text-ink3">Total Hours</span>
-            <span className="font-serif font-black text-2xl">{totalHours().toFixed(1)} hrs</span>
           </div>
         </div>
       </div>
