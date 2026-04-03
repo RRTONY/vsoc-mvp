@@ -27,18 +27,20 @@ interface Member {
   filed: boolean
   filedWeek1: boolean
   filedWeek2: boolean
-  bt: string
+  btAlias: string | null   // null = N/A (no Braintrust expected)
+  btFiled: boolean
 }
 
+// btAlias: first name or known Braintrust contractor name fragment to match against invoice contractor field
 const BASE_TEAM: Member[] = [
-  { name: 'Rob Holmes',   role: 'BD · Grants',           rate: 91,  filed: false, filedWeek1: false, filedWeek2: false, bt: 'Not integrated' },
-  { name: 'Alex Veytsel', role: 'Equity Partner',         rate: 82,  filed: false, filedWeek1: false, filedWeek2: false, bt: 'Not integrated' },
-  { name: 'Josh Bykowski', role: 'Legal · BD',            rate: 73,  filed: false, filedWeek1: false, filedWeek2: false, bt: 'Not integrated' },
-  { name: 'Kim',          role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, bt: 'Narrative only' },
-  { name: 'Chase',        role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, bt: 'Narrative only' },
-  { name: 'Daniel Baez',  role: 'Webmaster',              rate: 100, filed: false, filedWeek1: false, filedWeek2: false, bt: 'N/A (new)' },
-  { name: 'Ben Sheppard', role: 'ImpactSoul Contractor',  rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, bt: 'First due Mar 23' },
-  { name: 'Tony',         role: 'CEO',                    rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, bt: 'N/A' },
+  { name: 'Rob Holmes',   role: 'BD · Grants',           rate: 91,  filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'rob',       btFiled: false },
+  { name: 'Alex Veytsel', role: 'Equity Partner',         rate: 82,  filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'alex',      btFiled: false },
+  { name: 'Josh Bykowski', role: 'Legal · BD',            rate: 73,  filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'josh',      btFiled: false },
+  { name: 'Kim',          role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'kimberly',  btFiled: false },
+  { name: 'Chase',        role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'chase',     btFiled: false },
+  { name: 'Daniel Baez',  role: 'Webmaster',              rate: 100, filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'daniel',    btFiled: false },
+  { name: 'Ben Sheppard', role: 'ImpactSoul Contractor',  rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'ben',       btFiled: false },
+  { name: 'Tony',         role: 'CEO',                    rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, btAlias: null,        btFiled: false },
 ]
 
 
@@ -82,6 +84,24 @@ export default function CompliancePage() {
       .catch(() => {})
   }, [refreshKey])
 
+  useEffect(() => {
+    fetch('/api/invoices', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((d) => {
+        const invoices: { contractor: string }[] = d.invoices ?? []
+        setTeam((prev) =>
+          prev.map((m) => {
+            if (!m.btAlias) return m
+            const btFiled = invoices.some((inv) =>
+              inv.contractor.toLowerCase().includes(m.btAlias!)
+            )
+            return { ...m, btFiled }
+          })
+        )
+      })
+      .catch(() => {})
+  }, [refreshKey])
+
   const missing = team.filter((m) => !m.filed && m.name !== 'Tony')
 
   return (
@@ -102,7 +122,7 @@ export default function CompliancePage() {
                 {isOwner && <th className="text-right py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 hidden sm:table-cell">Rate</th>}
                 <th className="text-center py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">{week1Label}</th>
                 <th className="text-center py-2 font-extrabold text-xs uppercase tracking-widest text-ink3">{week2Label}</th>
-                <th className="text-left py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 pl-4 hidden sm:table-cell">Braintrust</th>
+                <th className="text-center py-2 font-extrabold text-xs uppercase tracking-widest text-ink3 hidden sm:table-cell">Braintrust</th>
               </tr>
             </thead>
             <tbody>
@@ -125,7 +145,14 @@ export default function CompliancePage() {
                         : <span className="text-ink4 font-bold text-sm">✕</span>
                       }
                     </td>
-                    <td className="py-2.5 text-xs text-ink3 pl-4 hidden sm:table-cell">{m.bt}</td>
+                    <td className="py-2.5 text-center hidden sm:table-cell">
+                      {m.btAlias === null
+                        ? <span className="text-ink4 text-xs">—</span>
+                        : m.btFiled
+                          ? <span className="text-green-600 font-bold text-sm">✓</span>
+                          : <span className="text-ink4 font-bold text-sm">✕</span>
+                      }
+                    </td>
                   </tr>
                 )
               })}
