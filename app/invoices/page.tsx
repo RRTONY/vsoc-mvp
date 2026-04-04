@@ -16,6 +16,7 @@ interface Invoice {
   parsedAt: string
   clickupTaskId: string | null
   clickupUrl: string | null
+  uploadedBy: string | null
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -96,33 +97,31 @@ export default function InvoicesPage() {
   }
 
   const visible = isAdmin ? invoices : invoices.filter(inv =>
-    me ? inv.contractor.toLowerCase().includes(me.username.toLowerCase()) : false
+    me ? inv.uploadedBy === me.username : false
   )
 
   return (
     <div>
       <div className="flex items-center justify-between mt-6 mb-1">
         <div className="slbl mb-0">Braintrust Invoices</div>
-        {isAdmin && (
-          <div className="flex items-center gap-2">
-            {uploadMsg && (
-              <span className={`text-xs font-medium ${uploadMsg.startsWith('✓') ? 'text-green-700' : 'text-red-600'}`}>
-                {uploadMsg}
-              </span>
-            )}
-            <label className="btn-secondary cursor-pointer text-xs">
-              {uploading ? 'Importing…' : '↑ Upload PDF'}
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".pdf"
-                className="hidden"
-                onChange={handleUpload}
-                disabled={uploading}
-              />
-            </label>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {uploadMsg && (
+            <span className={`text-xs font-medium ${uploadMsg.startsWith('✓') ? 'text-green-700' : 'text-red-600'}`}>
+              {uploadMsg}
+            </span>
+          )}
+          <label className="btn-secondary cursor-pointer text-xs">
+            {uploading ? 'Importing…' : '↑ Upload PDF'}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={handleUpload}
+              disabled={uploading}
+            />
+          </label>
+        </div>
       </div>
 
       {loadError && (
@@ -141,7 +140,7 @@ export default function InvoicesPage() {
 
       {!isAdmin && (
         <div className="alert alert-blue mb-4 text-xs">
-          Showing your invoices only. Rates and amounts are private.
+          Showing your invoices only. Upload your Braintrust PDF to submit an invoice.
         </div>
       )}
 

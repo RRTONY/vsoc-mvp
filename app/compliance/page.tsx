@@ -13,11 +13,11 @@ interface CheckState {
   slackReportConfirmed: boolean
 }
 
-const BT_ITEMS: { key: keyof CheckState; label: string; urlName: string; placeholder: string }[] = [
-  { key: 'invoiceSubmitted',    label: 'Braintrust invoice submitted this period?',              urlName: 'btLink', placeholder: 'Paste Braintrust invoice URL...' },
-  { key: 'webworkConfirmed',    label: 'WebWork screenshots cover full work period?',             urlName: 'wwLink', placeholder: 'Paste WebWork screenshot link or folder URL...' },
-  { key: 'emailMeterConfirmed', label: 'Email Meter report submitted for this week?',             urlName: 'emLink', placeholder: 'Paste Email Meter report link...' },
-  { key: 'slackReportConfirmed',label: 'Slack weekly report posted and linked in #weeklyreports?',urlName: 'slLink', placeholder: 'Paste Slack message permalink...' },
+const BT_ITEMS: { key: keyof CheckState; label: string }[] = [
+  { key: 'invoiceSubmitted',    label: 'Braintrust invoice submitted this period?' },
+  { key: 'webworkConfirmed',    label: 'WebWork screenshots cover full work period?' },
+  { key: 'emailMeterConfirmed', label: 'Email Meter report submitted for this week?' },
+  { key: 'slackReportConfirmed',label: 'Slack weekly report posted and linked in #weeklyreports?' },
 ]
 
 interface Member {
@@ -50,7 +50,6 @@ export default function CompliancePage() {
   const [week1Label, setWeek1Label] = useState('Week 1')
   const [week2Label, setWeek2Label] = useState('Week 2')
   const [checks, setChecks] = useState<CheckState>({ invoiceSubmitted: false, webworkConfirmed: false, emailMeterConfirmed: false, slackReportConfirmed: false })
-  const [urls, setUrls] = useState<Record<string, string>>({})
   const [hours, setHours] = useState<Record<string, string>>({})
   const { refreshKey } = useRefresh()
 
@@ -169,22 +168,11 @@ export default function CompliancePage() {
         </div>
         <div className="card-body space-y-3">
           {BT_ITEMS.map((item) => (
-            <div key={item.key}>
-              <div className="check-row" onClick={() => toggleCheck(item.key)}>
-                <div className={`check-box ${checks[item.key] ? 'checked' : ''}`}>
-                  {checks[item.key] && <span className="text-sand text-[10px] font-bold">✓</span>}
-                </div>
-                <span className={`text-sm ${checks[item.key] ? 'line-through text-ink4' : ''}`}>{item.label}</span>
+            <div key={item.key} className="check-row" onClick={() => toggleCheck(item.key)}>
+              <div className={`check-box ${checks[item.key] ? 'checked' : ''}`}>
+                {checks[item.key] && <span className="text-sand text-[10px] font-bold">✓</span>}
               </div>
-              <div className="pl-6 mt-1">
-                <input
-                  className="field-input text-xs"
-                  type="url"
-                  placeholder={item.placeholder}
-                  value={urls[item.urlName] ?? ''}
-                  onChange={(e) => setUrls((u) => ({ ...u, [item.urlName]: e.target.value }))}
-                />
-              </div>
+              <span className={`text-sm ${checks[item.key] ? 'line-through text-ink4' : ''}`}>{item.label}</span>
             </div>
           ))}
         </div>

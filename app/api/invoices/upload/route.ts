@@ -52,8 +52,8 @@ async function pushToClickUp(inv: {
 export async function POST(req: NextRequest) {
   const token = req.cookies.get(COOKIE_NAME)?.value
   const session = token ? await verifySession(token) : null
-  if (!session || !['admin', 'owner'].includes(session.role)) {
-    return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+  if (!session) {
+    return NextResponse.json({ error: 'Login required' }, { status: 401 })
   }
 
   try {
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
       amount:         inv.amount,
       status:         inv.status,
       parsed_at:      inv.parsedAt,
+      uploaded_by:    session.username,
     }))
 
     const { data: inserted, error: dbError } = await sb.from('invoices').insert(rows).select()
@@ -123,6 +124,7 @@ export async function POST(req: NextRequest) {
       parsedAt:      row.parsed_at ?? '',
       clickupTaskId: row.clickup_task_id ?? null,
       clickupUrl:    row.clickup_url ?? null,
+      uploadedBy:    row.uploaded_by ?? null,
     }))
 
     return NextResponse.json({
