@@ -71,13 +71,29 @@ function extractInvoices(text: string): InvoiceRecord[] {
       record.period = descPeriod[0]
     }
 
-    // Amount line: "$12.50 68.13$851.63" — rate QTY amount (no space before 2nd $)
-    const amtLine = line.match(/^\$([\d,]+\.?\d*)\s+([\d,]+\.?\d*)\$([\d,]+\.?\d*)$/)
+    // Amount line: "$12.50 68.13$851.63" or "$50.00 28.80 $1,440.00" — rate QTY amount
+    const amtLine = line.match(/^\$([\d,]+\.?\d*)\s+([\d,]+\.?\d*)\s*\$([\d,]+\.?\d*)$/)
     if (amtLine) {
       record.rate   = parseFloat(amtLine[1].replace(/,/g, ''))
       record.hours  = parseFloat(amtLine[2].replace(/,/g, ''))
       record.amount = parseFloat(amtLine[3].replace(/,/g, ''))
       continue
+    }
+
+    // Bare rate/qty/amount on separate lines: "$50.00" / "28.80" / "$1,440.00"
+    const bareRate = line.match(/^\$([\d,]+\.?\d*)$/)
+    if (bareRate && !record.rate) {
+      const qty = lines[i + 1] ?? ''
+      const amt = lines[i + 2] ?? ''
+      const qtyMatch = qty.match(/^([\d,]+\.?\d*)$/)
+      const amtMatch = amt.match(/^\$([\d,]+\.?\d*)$/)
+      if (qtyMatch && amtMatch) {
+        record.rate   = parseFloat(bareRate[1].replace(/,/g, ''))
+        record.hours  = parseFloat(qtyMatch[1].replace(/,/g, ''))
+        record.amount = parseFloat(amtMatch[1].replace(/,/g, ''))
+        i += 2
+        continue
+      }
     }
 
     // TOTAL line as fallback for amount: "TOTAL" followed by "$851.63"
