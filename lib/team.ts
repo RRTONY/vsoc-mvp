@@ -8,14 +8,14 @@ export interface TeamMember {
 }
 
 export const TEAM: TeamMember[] = [
-  { name: 'Rob Holmes',    cuKey: 'rob',    slackAliases: ['rob holmes', 'rob', "rob's weekly report"],                                    role: 'BD · Grants',           billsHours: true,  filesReport: true  },
-  { name: 'Alex Veytsel',  cuKey: 'alex',   slackAliases: ['alex veytsel', 'alex', "alex's weekly report"],                               role: 'Equity Partner',         billsHours: true,  filesReport: true  },
-  { name: 'Josh Bykowski',  cuKey: 'josh',   slackAliases: ['josh bykowski', 'josh', "josh's weekly report"],                              role: 'Legal · BD',             billsHours: true,  filesReport: true  },
-  { name: 'Kim',           cuKey: 'kim',    slackAliases: ['kimberly dofredo', 'kimberly', 'kim', "kimberly's weekly report"],            role: 'Executive Ops',          billsHours: true,  filesReport: true  },
-  { name: 'Chase',         cuKey: 'chase',  slackAliases: ['chase adrian', 'chase', "chase's weekly report"],                             role: 'Executive Ops',          billsHours: true,  filesReport: true  },
-  { name: 'Daniel Baez',   cuKey: 'daniel', slackAliases: ['daniel baez', 'daniel', "daniel's weekly report"],                            role: 'Webmaster',              billsHours: true,  filesReport: true  },
-  { name: 'Ben Sheppard',  cuKey: 'ben',    slackAliases: ['ben sheppard', 'ben', "ben's weekly report"],                                 role: 'ImpactSoul Contractor',  billsHours: true,  filesReport: true  },
-  { name: 'Tony',          cuKey: 'tony',   slackAliases: ['tony greenberg', 'rampratetony', 'tonyg', 'tony'], role: 'CEO',            billsHours: false, filesReport: false },
+  { name: 'Rob Holmes',    cuKey: 'rob',    slackAliases: ['rob holmes', "rob's weekly report"],                          role: 'BD · Grants',           billsHours: true,  filesReport: true  },
+  { name: 'Alex Veytsel',  cuKey: 'alex',   slackAliases: ['alex veytsel', "alex's weekly report"],                        role: 'Equity Partner',         billsHours: true,  filesReport: true  },
+  { name: 'Josh Bykowski',  cuKey: 'josh',   slackAliases: ['josh bykowski', "josh's weekly report"],                       role: 'Legal · BD',             billsHours: true,  filesReport: true  },
+  { name: 'Kim',           cuKey: 'kim',    slackAliases: ['kimberly dofredo', "kimberly's weekly report"],                 role: 'Executive Ops',          billsHours: true,  filesReport: true  },
+  { name: 'Chase',         cuKey: 'chase',  slackAliases: ['chase adrian', "chase's weekly report"],                        role: 'Executive Ops',          billsHours: true,  filesReport: true  },
+  { name: 'Daniel Baez',   cuKey: 'daniel', slackAliases: ['daniel baez', "daniel's weekly report"],                        role: 'Webmaster',              billsHours: true,  filesReport: true  },
+  { name: 'Ben Sheppard',  cuKey: 'ben',    slackAliases: ['ben sheppard', "ben's weekly report"],                          role: 'ImpactSoul Contractor',  billsHours: true,  filesReport: true  },
+  { name: 'Tony',          cuKey: 'tony',   slackAliases: ['tony greenberg', 'rampratetony', 'tonyg'],                      role: 'CEO',                    billsHours: false, filesReport: false },
 ]
 
 export const TEAM_NAMES   = TEAM.map(m => m.name)

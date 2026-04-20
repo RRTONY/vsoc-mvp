@@ -96,13 +96,20 @@ function getPostersFromMessages(
   }
 }
 
+function matchesAlias(text: string, alias: string): boolean {
+  const t = text.toLowerCase()
+  const a = alias.toLowerCase()
+  // Exact match, or alias appears as a whole word at start/end of the name
+  return t === a || t.startsWith(a + ' ') || t.endsWith(' ' + a) || t.includes(' ' + a + ' ')
+}
+
 function whoFiled(names: string[], handles: string[]): string[] {
   const filed: string[] = []
   for (const member of TEAM_NAMES) {
     const aliases = SLACK_MATCH[member] ?? [member.split(' ')[0].toLowerCase()]
     const didFile =
-      names.some(p => aliases.some(a => p.toLowerCase().includes(a))) ||
-      handles.some(h => aliases.some(a => h.toLowerCase().includes(a)))
+      names.some(p => aliases.some(a => matchesAlias(p, a))) ||
+      handles.some(h => aliases.some(a => matchesAlias(h, a)))
     if (didFile) filed.push(member)
   }
   return filed
