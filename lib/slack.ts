@@ -144,7 +144,7 @@ export async function buildSlackSnapshot() {
     }
   }
 
-  const messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
+  const messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string; text?: string }> = (historyData as { messages?: typeof messages }).messages ?? []
 
   // Week 1 and Week 2 filing detection
   const week1 = getPostersFromMessages(messages, userMap, handleMap, week1Start.getTime(), week2Start.getTime())

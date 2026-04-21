@@ -170,8 +170,93 @@ function MeetingCard({ m }: { m: Meeting }) {
   )
 }
 
+function SubmittedReportCard({ r }: {
+  r: {
+    id: string; submitted_by: string; week_label: string; win: string | null
+    priorities: string | null; blockers: string | null; created_at: string
+    ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
+  }
+}) {
+  const [open, setOpen] = useState(false)
+  const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return (
+    <div className="border border-sand3">
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-sand3/40 transition-colors"
+      >
+        <div className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-sand2 text-ink flex-shrink-0">
+          {r.submitted_by[0]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <span className="text-sm font-bold">{r.submitted_by}</span>
+          <span className="text-xs text-ink3 ml-2">{r.week_label}</span>
+        </div>
+        {r.ai_analysis && (
+          <span className="text-[10px] font-bold text-accent border border-accent px-1.5 py-0.5 flex-shrink-0">AI</span>
+        )}
+        <span className="text-xs text-ink4 flex-shrink-0">{date}</span>
+        <span className="text-ink4 text-xs ml-1">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="border-t border-sand3 px-4 py-4 space-y-4">
+          {r.ai_analysis && (
+            <div className="bg-sand2 p-3 space-y-3">
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3">AI Analysis</div>
+              <p className="text-sm text-ink2 leading-relaxed">{r.ai_analysis.summary}</p>
+              {r.ai_analysis.insights?.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-ink3 mb-1">Insights</div>
+                  <ul className="space-y-1">
+                    {r.ai_analysis.insights.map((ins, i) => (
+                      <li key={i} className="text-xs text-ink2 flex gap-2">
+                        <span className="text-ink4 shrink-0">◆</span><span>{ins}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {r.ai_analysis.actions?.length > 0 && (
+                <div>
+                  <div className="text-xs font-semibold text-ink3 mb-1">Recommended Actions</div>
+                  <ul className="space-y-1">
+                    {r.ai_analysis.actions.map((act, i) => (
+                      <li key={i} className="text-xs text-ink2 flex gap-2">
+                        <span className="text-amber-500 shrink-0">→</span><span>{act}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {r.win && (
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">Win of the Week</div>
+              <p className="text-sm text-ink2">{r.win}</p>
+            </div>
+          )}
+          {r.priorities && (
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">Priorities Next Week</div>
+              <p className="text-sm text-ink2 whitespace-pre-line">{r.priorities}</p>
+            </div>
+          )}
+          {r.blockers && (
+            <div>
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">Blockers</div>
+              <p className="text-sm text-ink2">{r.blockers}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ReportsPage() {
-  const [tab, setTab] = useState<'weekly' | 'daily' | 'hours'>('weekly')
+  const [tab, setTab] = useState<'weekly' | 'submitted' | 'daily' | 'hours'>('weekly')
   const [slack, setSlack] = useState<SlackData | null>(null)
   const [clickup, setClickUp] = useState<ClickUpData | null>(null)
   const [meetings, setMeetings] = useState<Meeting[]>([])
@@ -181,6 +266,12 @@ export default function ReportsPage() {
   const [dailyHistory, setDailyHistory] = useState<DailyReport[]>([])
   const [dailyLoading, setDailyLoading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
+  const [submittedReports, setSubmittedReports] = useState<Array<{
+    id: string; submitted_by: string; week_label: string; win: string | null
+    priorities: string | null; blockers: string | null; created_at: string
+    ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
+  }>>([])
+  const [submittedLoading, setSubmittedLoading] = useState(false)
   const [webworkData, setWebworkData] = useState<{ week: string[]; lastWeek?: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
@@ -214,6 +305,13 @@ export default function ReportsPage() {
     setWebworkLoading(false)
   }
 
+  async function fetchSubmitted() {
+    setSubmittedLoading(true)
+    const res = await fetch('/api/weekly-reports', { cache: 'no-store' }).then(r => r.json()).catch(() => [])
+    setSubmittedReports(Array.isArray(res) ? res : [])
+    setSubmittedLoading(false)
+  }
+
   async function generateNow() {
     setGeneratingReport(true)
     await fetch('/api/reports/daily', { method: 'POST' })
@@ -230,6 +328,7 @@ export default function ReportsPage() {
   useEffect(() => {
     if (tab === 'daily') fetchDailyHistory()
     if (tab === 'hours') fetchWebwork()
+    if (tab === 'submitted') fetchSubmitted()
   }, [tab])
 
   useEffect(() => {
@@ -265,6 +364,7 @@ export default function ReportsPage() {
 
   const TABS = [
     { id: 'weekly', label: 'Weekly Roll-Up' },
+    { id: 'submitted', label: 'Submitted Reports' },
     { id: 'daily', label: 'Daily History' },
     { id: 'hours', label: 'Team Hours' },
   ] as const
@@ -294,6 +394,21 @@ export default function ReportsPage() {
           </button>
         )}
       </div>
+
+      {/* ── SUBMITTED REPORTS TAB ───────────────────────────── */}
+      {tab === 'submitted' && (
+        <div className="space-y-3">
+          {submittedLoading ? (
+            <div className="text-ink4 text-sm animate-pulse">Loading reports…</div>
+          ) : submittedReports.length === 0 ? (
+            <div className="card p-6 text-center text-ink4 text-sm">
+              No submitted reports yet. Team members can submit via the Submit Report tab.
+            </div>
+          ) : (
+            submittedReports.map(r => <SubmittedReportCard key={r.id} r={r} />)
+          )}
+        </div>
+      )}
 
       {/* ── DAILY HISTORY TAB ────────────────────────────────── */}
       {tab === 'daily' && (

@@ -1,41 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createTask } from '@/lib/clickup'
+import Anthropic from '@anthropic-ai/sdk'
 import { postMessage } from '@/lib/slack'
+import { getSupabase } from '@/lib/supabase'
 
-const CLICKUP_LIST_ID = '901102575315'
 const SLACK_CHANNEL = 'C08K6KM53FV'
-
-interface Braintrust {
-  invoiceSubmitted?: boolean
-  invoiceLink?: string
-  webworkConfirmed?: boolean
-  webworkLink?: string
-  emailMeterConfirmed?: boolean
-  emailMeterLink?: string
-  slackReportConfirmed?: boolean
-  slackReportLink?: string
-}
 
 interface ReportBody {
   name: string
   week: string
   outcomes?: string
-  goals?: string
-  deals?: string
-  relationships?: string
-  priorities?: string
+  goals_met?: string
+  deliverables?: string
+  automations?: string
+  processes?: string
+  automation_roi?: string
+  deals_relationships?: string
   blockers?: string
+  interesting?: string
+  priorities?: string
   win?: string
-  braintrust?: Braintrust
-  hours?: Record<string, number>
+  kudos?: string
+  friction?: string
+  whats_new?: string
+}
+
+interface AiAnalysis {
+  summary: string
+  insights: string[]
+  actions: string[]
+}
+
+async function analyzeReport(report: ReportBody): Promise<AiAnalysis | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+
+  const client = new Anthropic({ apiKey })
+
+  const prompt = `You are analyzing a weekly report from ${report.name} for the week of ${report.week}. Provide a concise executive analysis.
+
+Report:
+1. Business Outcomes: ${report.outcomes || '—'}
+2. Goals from Last Week: ${report.goals_met || '—'}
+3. Deliverables: ${report.deliverables || '—'}
+4. Automations Built: ${report.automations || '—'}
+5. Processes Executed: ${report.processes || '—'}
+6. Automation ROI: ${report.automation_roi || '—'}
+7. Deals & Relationships: ${report.deals_relationships || '—'}
+8. Blockers: ${report.blockers || '—'}
+9. Interesting Insight: ${report.interesting || '—'}
+10. Priorities Next Week: ${report.priorities || '—'}
+11. Win of the Week: ${report.win || '—'}
+
+Respond with valid JSON only:
+{
+  "summary": "2-3 sentence executive summary of this person's week",
+  "insights": ["2-4 key observations about performance, patterns, or growth areas"],
+  "actions": ["2-3 specific recommended actions for management to consider"]
+}`
+
+  try {
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
+    })
+    const text = message.content[0].type === 'text' ? message.content[0].text : ''
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return null
+    return JSON.parse(jsonMatch[0]) as AiAnalysis
+  } catch {
+    return null
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.CLICKUP_API_KEY
-  if (!apiKey) {
-    return NextResponse.json({ error: 'CLICKUP_API_KEY not configured' }, { status: 500 })
-  }
-
   let body: ReportBody
   try {
     body = await req.json()
@@ -43,84 +81,97 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { name, week, outcomes, goals, deals, relationships, priorities, blockers, win, braintrust = {}, hours = {} } = body
+  const { name, week } = body
   if (!name || !week) {
     return NextResponse.json({ error: 'name and week are required' }, { status: 400 })
   }
 
-  const btCount = [
-    braintrust.invoiceSubmitted,
-    braintrust.webworkConfirmed,
-    braintrust.emailMeterConfirmed,
-    braintrust.slackReportConfirmed,
-  ].filter(Boolean).length
-
-  const hoursText = Object.entries(hours)
-    .filter(([, v]) => v > 0)
-    .map(([k, v]) => `${k}: ${v}h`)
-    .join(' · ')
-
-  const description = [
-    `**Week:** ${week}`,
-    `**Submitted by:** ${name}`,
+  const lines: string[] = [
+    '#myweeklyreport',
     '',
-    `**Outcomes:** ${outcomes ?? '—'}`,
-    `**Goals:** ${goals ?? '—'}`,
-    `**Deals:** ${deals ?? '—'}`,
-    `**Relationships:** ${relationships ?? '—'}`,
-    `**Priorities:** ${priorities ?? '—'}`,
-    `**Blockers:** ${blockers ?? '—'}`,
-    `**Win of the Week:** ${win ?? '—'}`,
+    `*Weekly Report — ${name} — ${week}*`,
     '',
-    `**Braintrust Compliance (${btCount}/4):**`,
-    `- Invoice: ${braintrust.invoiceSubmitted ? '✓' : '✗'} ${braintrust.invoiceLink ?? ''}`,
-    `- WebWork: ${braintrust.webworkConfirmed ? '✓' : '✗'} ${braintrust.webworkLink ?? ''}`,
-    `- Email Meter: ${braintrust.emailMeterConfirmed ? '✓' : '✗'} ${braintrust.emailMeterLink ?? ''}`,
-    `- Slack Report: ${braintrust.slackReportConfirmed ? '✓' : '✗'} ${braintrust.slackReportLink ?? ''}`,
+    `1. What business outcomes did you drive this week?\n${body.outcomes || '—'}`,
     '',
-    `**Hours:** ${hoursText || '—'}`,
-  ].join('\n')
+    `2. Did you accomplish your top goals from last week? If not, why not?\n${body.goals_met || '—'}`,
+    '',
+    `3. Deliverables Authored or Significantly Edited\n${body.deliverables || '—'}`,
+    '',
+    `4. Automations built or improved\n${body.automations || '—'}`,
+    '',
+    `5. Processes Executed\n${body.processes || '—'}`,
+    '',
+    `6. Automation ROI this week\n${body.automation_roi || '—'}`,
+    '',
+    `7. Key deals & relationships nurtured\n${body.deals_relationships || '—'}`,
+    '',
+    `8. Help Needed / Dependencies / Blockers\n${body.blockers || '—'}`,
+    '',
+    `9. Most Interesting Thing You Heard / Read This Week\n${body.interesting || '—'}`,
+    '',
+    `10. Top 3-5 Priorities for Next Week\n${body.priorities || '—'}`,
+    '',
+    `11. Win of the Week\n${body.win || '—'}`,
+  ]
+  if (body.kudos) lines.push('', `12. Kudos\n${body.kudos}`)
+  if (body.friction) lines.push('', `13. Friction\n${body.friction}`)
+  if (body.whats_new) lines.push('', `14. What\'s new with you?\n${body.whats_new}`)
 
-  try {
-    const task = await createTask(CLICKUP_LIST_ID, {
-      name: `Weekly Report — ${name} — ${week}`,
-      description,
-      status: 'open',
-      tags: ['weekly-report'],
-    })
+  const slackMsg = lines.join('\n')
 
-    // Post Slack confirmation if token is set
-    const slackToken = process.env.SLACK_BOT_TOKEN
-    if (slackToken && task.id) {
-      const missing = []
-      if (!braintrust.invoiceSubmitted) missing.push('Invoice')
-      if (!braintrust.webworkConfirmed) missing.push('WebWork')
-      if (!braintrust.emailMeterConfirmed) missing.push('Email Meter')
-      if (!braintrust.slackReportConfirmed) missing.push('Slack Report')
+  const [analysisResult, slackResult] = await Promise.allSettled([
+    analyzeReport(body),
+    postMessage(SLACK_CHANNEL, slackMsg),
+  ])
 
-      const btStatus = btCount === 4 ? '4/4 complete ✅' : `${btCount}/4 — missing: ${missing.join(', ')}`
-      const hoursLine = Object.entries(hours)
-        .filter(([, v]) => v > 0)
-        .map(([k, v]) => `${k.split(' ')[0]} ${v}`)
-        .join(' · ')
+  const aiAnalysis = analysisResult.status === 'fulfilled' ? analysisResult.value : null
+  const slackTs = slackResult.status === 'fulfilled'
+    ? (slackResult.value as { ts?: string })?.ts ?? null
+    : null
 
-      const slackMsg = [
-        `✅ Weekly report submitted by *${name}* for ${week}`,
-        `Braintrust: ${btStatus}`,
-        hoursLine ? `Hours: ${hoursLine}` : null,
-        `View in ClickUp: https://app.clickup.com/t/${task.id}`,
-      ]
-        .filter(Boolean)
-        .join('\n')
+  const sb = getSupabase()
+  const { data, error } = await sb.from('weekly_reports').insert({
+    submitted_by: name,
+    week_label: week,
+    outcomes: body.outcomes ?? null,
+    goals_met: body.goals_met ?? null,
+    deliverables: body.deliverables ?? null,
+    automations: body.automations ?? null,
+    processes: body.processes ?? null,
+    automation_roi: body.automation_roi ?? null,
+    deals_relationships: body.deals_relationships ?? null,
+    blockers: body.blockers ?? null,
+    interesting: body.interesting ?? null,
+    priorities: body.priorities ?? null,
+    win: body.win ?? null,
+    kudos: body.kudos ?? null,
+    friction: body.friction ?? null,
+    whats_new: body.whats_new ?? null,
+    ai_analysis: aiAnalysis,
+    slack_ts: slackTs,
+  }).select('id').single()
 
-      await postMessage(SLACK_CHANNEL, slackMsg)
-    }
-
-    return NextResponse.json({ success: true, taskId: task.id })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  return NextResponse.json({ success: true, id: data.id, analysis: aiAnalysis })
+}
+
+export async function GET(req: NextRequest) {
+  const role = req.headers.get('x-role')
+  if (!['admin', 'owner'].includes(role ?? '')) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  const sb = getSupabase()
+  const { data } = await sb
+    .from('weekly_reports')
+    .select('id, submitted_by, week_label, win, priorities, blockers, ai_analysis, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50)
+
+  return NextResponse.json(data ?? [])
 }
 
 export async function OPTIONS() {
@@ -128,7 +179,7 @@ export async function OPTIONS() {
     status: 200,
     headers: {
       'Access-Control-Allow-Origin': process.env.ALLOWED_ORIGIN ?? '*',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     },
   })
