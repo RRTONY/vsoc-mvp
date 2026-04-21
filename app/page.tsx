@@ -261,11 +261,37 @@ export default function DashboardPage() {
     })
   }
 
+  const weeklyReportTemplate = [
+    `#myweeklyreport`,
+    ``,
+    `1. What business outcomes did you drive this week?`,
+    `2. Did you accomplish your top goals from last week? If not, why not?`,
+    `3. Deliverables Authored or Significantly Edited`,
+    `4. Automations built or improved`,
+    `5. Processes Executed`,
+    `6. Automation ROI this week`,
+    `7. Key deals & relationships nurtured`,
+    `8. Help Needed / Dependencies / Blockers`,
+    `9. Most Interesting Thing You Heard / Read This Week`,
+    `10. Top 3-5 Priorities for Next Week`,
+    `11. Win of the Week`,
+    `12. (Optional) Kudos`,
+    `13. (Optional) Friction`,
+    `14. (Optional) What's new with you?`,
+  ].join('\n')
+
   const shareMsg = [
     `📊 *CEO Status Brief — Week of ${week}*`,
     `Reports: ${filed.length}/${REPORT_MEMBERS.length} filed${missing.length ? ` · Missing: ${missing.map(n => n.split(' ')[0]).join(', ')}` : ' ✅'}`,
     clickup ? `CRM: ${clickup.overduePercent}% overdue (${clickup.overdue}/${clickup.totalTasks}) · ${clickup.urgent} urgent` : '',
     `_From Visual Chief of Staff_`,
+    missing.length ? [
+      ``,
+      `📋 *${missing.map(n => n.split(' ')[0]).join(', ')}* — please post your weekly report using the template below. Include *#myweeklyreport* at the top.`,
+      `\`\`\``,
+      weeklyReportTemplate,
+      `\`\`\``,
+    ].join('\n') : '',
   ].filter(Boolean).join('\n')
 
   return (

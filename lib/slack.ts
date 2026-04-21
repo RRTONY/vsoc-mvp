@@ -56,12 +56,12 @@ import { SLACK_CHANNEL_WEEKLY_REPORTS } from '@/lib/constants'
 
 function weekLabel() {
   const now = new Date()
-  const mon = new Date(now)
-  mon.setDate(now.getDate() - ((now.getDay() + 6) % 7))
-  const sun = new Date(mon)
-  sun.setDate(mon.getDate() + 6)
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-  return `${months[mon.getMonth()]} ${mon.getDate()}–${sun.getDate()}`
+  // Reporting week = last Friday → most recent Friday (the period reports cover)
+  const thisFri = getMostRecentFriday(now)
+  const lastFri = new Date(thisFri)
+  lastFri.setDate(thisFri.getDate() - 7)
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${fmt(lastFri)}–${fmt(new Date(thisFri.getTime() - 86400000))}` // last Fri → Thu before this Fri
 }
 
 export { weekLabel }
