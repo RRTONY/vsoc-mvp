@@ -160,16 +160,14 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const role = req.headers.get('x-role')
-  if (!['admin', 'owner'].includes(role ?? '')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sb = getSupabase()
   const { data } = await sb
     .from('weekly_reports')
-    .select('id, submitted_by, week_label, win, priorities, blockers, ai_analysis, created_at')
+    .select('id, submitted_by, week_label, outcomes, goals_met, deliverables, deals_relationships, interesting, priorities, blockers, win, kudos, ai_analysis, created_at')
     .order('created_at', { ascending: false })
-    .limit(50)
+    .limit(100)
 
   return NextResponse.json(data ?? [])
 }

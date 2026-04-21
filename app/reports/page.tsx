@@ -170,28 +170,53 @@ function MeetingCard({ m }: { m: Meeting }) {
   )
 }
 
-function SubmittedReportCard({ r }: {
-  r: {
-    id: string; submitted_by: string; week_label: string; win: string | null
-    priorities: string | null; blockers: string | null; created_at: string
-    ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
-  }
-}) {
+interface SubmittedReport {
+  id: string
+  submitted_by: string
+  week_label: string
+  outcomes: string | null
+  goals_met: string | null
+  deliverables: string | null
+  deals_relationships: string | null
+  interesting: string | null
+  priorities: string | null
+  blockers: string | null
+  win: string | null
+  kudos: string | null
+  created_at: string
+  ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
+}
+
+function ReportField({ label, value }: { label: string; value: string | null }) {
+  if (!value) return null
+  return (
+    <div>
+      <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">{label}</div>
+      <p className="text-sm text-ink2 whitespace-pre-line leading-relaxed">{value}</p>
+    </div>
+  )
+}
+
+function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolean }) {
   const [open, setOpen] = useState(false)
   const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   return (
-    <div className="border border-sand3">
+    <div className={`border ${isMine ? 'border-accent/40' : 'border-sand3'}`}>
       <button
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-sand3/40 transition-colors"
       >
-        <div className="w-7 h-7 flex items-center justify-center text-xs font-bold bg-sand2 text-ink flex-shrink-0">
+        <div className={`w-7 h-7 flex items-center justify-center text-xs font-bold flex-shrink-0 ${isMine ? 'bg-accent text-white' : 'bg-sand2 text-ink'}`}>
           {r.submitted_by[0]}
         </div>
         <div className="flex-1 min-w-0">
           <span className="text-sm font-bold">{r.submitted_by}</span>
+          {isMine && <span className="text-[10px] font-bold text-accent ml-2">YOU</span>}
           <span className="text-xs text-ink3 ml-2">{r.week_label}</span>
         </div>
+        {r.win && (
+          <span className="text-xs text-ink3 truncate hidden sm:block max-w-xs italic">"{r.win}"</span>
+        )}
         {r.ai_analysis && (
           <span className="text-[10px] font-bold text-accent border border-accent px-1.5 py-0.5 flex-shrink-0">AI</span>
         )}
@@ -203,7 +228,7 @@ function SubmittedReportCard({ r }: {
         <div className="border-t border-sand3 px-4 py-4 space-y-4">
           {r.ai_analysis && (
             <div className="bg-sand2 p-3 space-y-3">
-              <div className="text-xs font-bold uppercase tracking-widest text-ink3">AI Analysis</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-ink3">AI Summary</div>
               <p className="text-sm text-ink2 leading-relaxed">{r.ai_analysis.summary}</p>
               {r.ai_analysis.insights?.length > 0 && (
                 <div>
@@ -231,24 +256,15 @@ function SubmittedReportCard({ r }: {
               )}
             </div>
           )}
-          {r.win && (
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">Win of the Week</div>
-              <p className="text-sm text-ink2">{r.win}</p>
-            </div>
-          )}
-          {r.priorities && (
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">Priorities Next Week</div>
-              <p className="text-sm text-ink2 whitespace-pre-line">{r.priorities}</p>
-            </div>
-          )}
-          {r.blockers && (
-            <div>
-              <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-1">Blockers</div>
-              <p className="text-sm text-ink2">{r.blockers}</p>
-            </div>
-          )}
+          <ReportField label="Business Outcomes" value={r.outcomes} />
+          <ReportField label="Goals from Last Week" value={r.goals_met} />
+          <ReportField label="Deliverables" value={r.deliverables} />
+          <ReportField label="Deals & Relationships" value={r.deals_relationships} />
+          <ReportField label="Win of the Week" value={r.win} />
+          <ReportField label="Priorities Next Week" value={r.priorities} />
+          <ReportField label="Blockers" value={r.blockers} />
+          <ReportField label="Most Interesting This Week" value={r.interesting} />
+          <ReportField label="Kudos" value={r.kudos} />
         </div>
       )}
     </div>
@@ -266,14 +282,11 @@ export default function ReportsPage() {
   const [dailyHistory, setDailyHistory] = useState<DailyReport[]>([])
   const [dailyLoading, setDailyLoading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
-  const [submittedReports, setSubmittedReports] = useState<Array<{
-    id: string; submitted_by: string; week_label: string; win: string | null
-    priorities: string | null; blockers: string | null; created_at: string
-    ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
-  }>>([])
+  const [submittedReports, setSubmittedReports] = useState<SubmittedReport[]>([])
   const [submittedLoading, setSubmittedLoading] = useState(false)
   const [filterMember, setFilterMember] = useState('')
   const [filterWeek, setFilterWeek] = useState('')
+  const { me } = useMe()
   const [webworkData, setWebworkData] = useState<{ week: string[]; lastWeek?: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
@@ -482,7 +495,7 @@ export default function ReportsPage() {
                 {filtered.length === 0 ? (
                   <div className="text-sm text-ink4 py-4 text-center">No reports match the selected filters.</div>
                 ) : (
-                  filtered.map(r => <SubmittedReportCard key={r.id} r={r} />)
+                  filtered.map(r => <SubmittedReportCard key={r.id} r={r} isMine={me?.username === r.submitted_by} />)
                 )}
               </>
             )}
