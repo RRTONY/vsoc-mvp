@@ -272,6 +272,8 @@ export default function ReportsPage() {
     ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
   }>>([])
   const [submittedLoading, setSubmittedLoading] = useState(false)
+  const [filterMember, setFilterMember] = useState('')
+  const [filterWeek, setFilterWeek] = useState('')
   const [webworkData, setWebworkData] = useState<{ week: string[]; lastWeek?: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
@@ -396,19 +398,97 @@ export default function ReportsPage() {
       </div>
 
       {/* ── SUBMITTED REPORTS TAB ───────────────────────────── */}
-      {tab === 'submitted' && (
-        <div className="space-y-3">
-          {submittedLoading ? (
-            <div className="text-ink4 text-sm animate-pulse">Loading reports…</div>
-          ) : submittedReports.length === 0 ? (
-            <div className="card p-6 text-center text-ink4 text-sm">
-              No submitted reports yet. Team members can submit via the Submit Report tab.
-            </div>
-          ) : (
-            submittedReports.map(r => <SubmittedReportCard key={r.id} r={r} />)
-          )}
-        </div>
-      )}
+      {tab === 'submitted' && (() => {
+        const weeks = Array.from(new Set(submittedReports.map(r => r.week_label))).slice(0, 12)
+        const latestWeek = weeks[0] ?? ''
+        const latestSubmitters = new Set(submittedReports.filter(r => r.week_label === latestWeek).map(r => r.submitted_by))
+        const filtered = submittedReports.filter(r =>
+          (!filterMember || r.submitted_by === filterMember) &&
+          (!filterWeek || r.week_label === filterWeek)
+        )
+        return (
+          <div className="space-y-4">
+            {submittedLoading ? (
+              <div className="text-ink4 text-sm animate-pulse">Loading reports…</div>
+            ) : submittedReports.length === 0 ? (
+              <div className="card p-6 text-center text-ink4 text-sm">
+                No submitted reports yet. Team members can submit via the Submit Report tab.
+              </div>
+            ) : (
+              <>
+                {/* Summary grid — latest week */}
+                {latestWeek && (
+                  <div className="card">
+                    <div className="card-hd">
+                      <div className="card-ti">This Week — {latestWeek}</div>
+                      <div className="text-xs text-ink3">{latestSubmitters.size} of {REPORT_MEMBERS.length} submitted</div>
+                    </div>
+                    <div className="card-body p-3">
+                      <div className="flex flex-wrap gap-2">
+                        {REPORT_MEMBERS.map(name => {
+                          const filed = latestSubmitters.has(name)
+                          return (
+                            <button
+                              key={name}
+                              onClick={() => setFilterMember(filterMember === name ? '' : name)}
+                              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border transition-colors ${
+                                filterMember === name
+                                  ? 'border-ink bg-ink text-white'
+                                  : filed
+                                  ? 'border-green-600 text-green-800 bg-green-50 hover:bg-green-100'
+                                  : 'border-sand3 text-ink4 bg-sand2 hover:border-ink3'
+                              }`}
+                            >
+                              <span>{filed ? '✓' : '✗'}</span>
+                              <span>{name.split(' ')[0]}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Filter bar */}
+                <div className="flex flex-wrap gap-2 items-center">
+                  <select
+                    value={filterMember}
+                    onChange={e => setFilterMember(e.target.value)}
+                    className="field-input text-xs py-1.5 w-auto"
+                  >
+                    <option value="">All members</option>
+                    {REPORT_MEMBERS.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <select
+                    value={filterWeek}
+                    onChange={e => setFilterWeek(e.target.value)}
+                    className="field-input text-xs py-1.5 w-auto"
+                  >
+                    <option value="">All weeks</option>
+                    {weeks.map(w => <option key={w} value={w}>{w}</option>)}
+                  </select>
+                  {(filterMember || filterWeek) && (
+                    <button
+                      onClick={() => { setFilterMember(''); setFilterWeek('') }}
+                      className="text-xs text-ink4 hover:text-ink underline"
+                    >
+                      Clear
+                    </button>
+                  )}
+                  <span className="text-xs text-ink4 ml-auto">{filtered.length} report{filtered.length !== 1 ? 's' : ''}</span>
+                </div>
+
+                {/* Report list */}
+                {filtered.length === 0 ? (
+                  <div className="text-sm text-ink4 py-4 text-center">No reports match the selected filters.</div>
+                ) : (
+                  filtered.map(r => <SubmittedReportCard key={r.id} r={r} />)
+                )}
+              </>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── DAILY HISTORY TAB ────────────────────────────────── */}
       {tab === 'daily' && (
