@@ -77,7 +77,7 @@ function getMostRecentFriday(from: Date): Date {
 }
 
 function getPostersFromMessages(
-  messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string }>,
+  messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string; text?: string }>,
   userMap: Record<string, string>,
   handleMap: Record<string, string>,
   fromTs: number,
@@ -85,7 +85,7 @@ function getPostersFromMessages(
 ) {
   const window = messages.filter(m => {
     const ts = parseFloat(m.ts ?? '0') * 1000
-    return ts >= fromTs && ts < toTs
+    return ts >= fromTs && ts < toTs && (m.text ?? '').toLowerCase().includes('#myweeklyreport')
   })
   return {
     names: Array.from(new Set([
@@ -157,10 +157,10 @@ export async function buildSlackSnapshot() {
   const filed = Array.from(new Set([...filedWeek1, ...filedWeek2]))
   const missing = TEAM_NAMES.filter(m => !filed.includes(m))
 
-  // Group messages by day (YYYY-MM-DD)
+  // Group tagged reports by day (YYYY-MM-DD)
   const dayCounts: Record<string, number> = {}
   for (const msg of messages) {
-    if (msg.ts) {
+    if (msg.ts && (msg.text ?? '').toLowerCase().includes('#myweeklyreport')) {
       const d = new Date(parseFloat(msg.ts) * 1000).toISOString().slice(0, 10)
       dayCounts[d] = (dayCounts[d] ?? 0) + 1
     }
