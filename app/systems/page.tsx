@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import SystemRow from '@/components/SystemRow'
 import ProgressBar from '@/components/ProgressBar'
 import { useRefresh } from '@/components/RefreshContext'
+import { useMe } from '@/hooks/useMe'
 import type { HealthRow } from '@/app/api/cache-health/route'
 
 type Status = 'green' | 'amber' | 'red'
@@ -159,17 +160,27 @@ interface SlackKPIs {
   channels: number
 }
 
-const HEALTH_LABEL: Record<HealthRow['health'], string> = {
-  ok:           'green',
-  stale:        'amber',
-  dead:         'red',
-  circuit_open: 'red',
+const HEALTH_COLOR: Record<HealthRow['health'], string> = {
+  ok:           'bg-green-500',
+  stale:        'bg-amber-400',
+  dead:         'bg-red-500',
+  never:        'bg-sand3',
+  circuit_open: 'bg-red-500',
 }
 
-const HEALTH_DETAIL: Record<HealthRow['health'], string> = {
+const HEALTH_TEXT: Record<HealthRow['health'], string> = {
+  ok:           'text-green-700',
+  stale:        'text-amber-600',
+  dead:         'text-red-600',
+  never:        'text-ink4',
+  circuit_open: 'text-red-600',
+}
+
+const HEALTH_LABEL: Record<HealthRow['health'], string> = {
   ok:           'Fresh',
   stale:        'Stale',
   dead:         'Expired',
+  never:        'Never fetched',
   circuit_open: 'Circuit open',
 }
 
@@ -178,7 +189,14 @@ export default function SystemsPage() {
   const [lastChecked, setLastChecked] = useState('')
   const [slackKPIs, setSlackKPIs] = useState<SlackKPIs | null>(null)
   const [cacheHealth, setCacheHealth] = useState<HealthRow[]>([])
+  const [refreshing, setRefreshing] = useState<string | null>(null)
   const { refreshKey } = useRefresh()
+  const { isAdmin } = useMe()
+
+  async function fetchCacheHealth() {
+    const data = await fetch('/api/cache-health', { cache: 'no-store' }).then(r => r.json()).catch(() => null)
+    if (data?.health) setCacheHealth(data.health)
+  }
 
   useEffect(() => {
     Promise.all([
@@ -201,6 +219,20 @@ export default function SystemsPage() {
       setLastChecked(new Date().toLocaleTimeString())
     })
   }, [refreshKey])
+
+  async function handleRefresh(source: string) {
+    setRefreshing(source)
+    try {
+      await fetch('/api/cache-health', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source }),
+      })
+      await fetchCacheHealth()
+    } finally {
+      setRefreshing(null)
+    }
+  }
 
   return (
     <div>
@@ -239,34 +271,54 @@ export default function SystemsPage() {
         </div>
       </div>
 
-      <div className="slbl">API Cache Health</div>
+      <div className="flex items-center justify-between mt-6 mb-1">
+        <div className="slbl mb-0">API Cache Health</div>
+        {isAdmin && (
+          <button
+            onClick={() => handleRefresh('all')}
+            disabled={refreshing !== null}
+            className="btn-secondary text-xs py-1 px-3 disabled:opacity-50"
+          >
+            {refreshing === 'all' ? 'Refreshing…' : '↻ Refresh All'}
+          </button>
+        )}
+      </div>
       <div className="card mb-6">
         <div className="card-body p-0 px-4 divide-y divide-sand3">
           {cacheHealth.length === 0 ? (
             <div className="py-3 text-sm text-ink4 animate-pulse">Loading cache health…</div>
           ) : cacheHealth.map((row) => {
-            const statusColor = HEALTH_LABEL[row.health]
+            const isProblematic = row.health !== 'ok'
+            const fetchedTime = row.fetched_at
+              ? new Date(row.fetched_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              : null
             return (
               <div key={row.source} className="flex items-center gap-3 py-3">
-                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                  statusColor === 'green' ? 'bg-green-500' :
-                  statusColor === 'amber' ? 'bg-amber-400' : 'bg-red-500'
-                }`} />
-                <span className="text-sm font-bold w-28 capitalize">{row.source}</span>
-                <span className={`text-xs font-bold ${
-                  statusColor === 'green' ? 'text-green-700' :
-                  statusColor === 'amber' ? 'text-amber-600' : 'text-red-600'
-                }`}>
-                  {HEALTH_DETAIL[row.health]}
+                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${HEALTH_COLOR[row.health]}`} />
+                <span className="text-sm font-bold w-32">{row.label}</span>
+                <span className={`text-xs font-bold w-24 ${HEALTH_TEXT[row.health]}`}>
+                  {HEALTH_LABEL[row.health]}
                 </span>
-                <span className="text-xs text-ink4 ml-1">
-                  {row.age_minutes}m old
-                  {row.consecutive_failures > 0 && ` · ${row.consecutive_failures} failure${row.consecutive_failures > 1 ? 's' : ''}`}
+                <span className="text-xs text-ink4">
+                  {row.age_minutes !== null ? `${row.age_minutes}m ago` : '—'}
+                  {fetchedTime ? ` · ${fetchedTime}` : ''}
+                  {row.consecutive_failures > 0 && (
+                    <span className="text-red-500 ml-1">· {row.consecutive_failures} fail{row.consecutive_failures > 1 ? 's' : ''}</span>
+                  )}
                 </span>
                 {row.last_error && (
-                  <span className="text-xs text-red-500 truncate ml-auto max-w-xs" title={row.last_error}>
-                    {row.last_error}
+                  <span className="text-xs text-red-500 truncate max-w-xs hidden sm:block" title={row.last_error}>
+                    {row.last_error.slice(0, 60)}{row.last_error.length > 60 ? '…' : ''}
                   </span>
+                )}
+                {isAdmin && isProblematic && row.source !== 'systems-status' && (
+                  <button
+                    onClick={() => handleRefresh(row.source)}
+                    disabled={refreshing !== null}
+                    className="ml-auto text-xs border border-sand3 px-2 py-0.5 hover:border-ink3 hover:text-ink transition-colors disabled:opacity-40"
+                  >
+                    {refreshing === row.source ? '…' : '↻'}
+                  </button>
                 )}
               </div>
             )
