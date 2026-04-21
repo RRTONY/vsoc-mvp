@@ -94,12 +94,28 @@ function headers() {
 }
 
 export async function getTeamTasks(teamId: string) {
-  const res = await fetch(
-    `${BASE}/team/${teamId}/task?subtasks=true&include_closed=false`,
-    { headers: headers(), next: { revalidate: 0 } }
-  )
-  if (!res.ok) throw new Error(`ClickUp tasks ${res.status}`)
-  return res.json()
+  // Filter to tasks updated in the last 180 days to exclude stale archived work
+  const since = Date.now() - 180 * 24 * 60 * 60 * 1000
+  const base = `${BASE}/team/${teamId}/task?subtasks=true&include_closed=false&date_updated_gt=${since}`
+
+  const allTasks: CUTask[] = []
+  let page = 0
+
+  while (true) {
+    const res = await fetch(`${base}&page=${page}`, {
+      headers: headers(),
+      next: { revalidate: 0 },
+    })
+    if (!res.ok) throw new Error(`ClickUp tasks ${res.status}`)
+    const data = await res.json()
+    const tasks: CUTask[] = data.tasks ?? []
+    allTasks.push(...tasks)
+    if (data.last_page === true || tasks.length === 0) break
+    page++
+    if (page > 20) break // safety cap: 2000 tasks max
+  }
+
+  return { tasks: allTasks }
 }
 
 export async function pingUser() {
