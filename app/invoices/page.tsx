@@ -20,9 +20,19 @@ interface Invoice {
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  paid:    'bg-black text-white',
-  pending: 'bg-sand2 text-ink3 border border-sand3',
-  unknown: 'bg-sand2 text-ink4 border border-sand3',
+  paid:       'bg-black text-white',
+  approved:   'bg-green-800 text-white',
+  audit_done: 'bg-blue-700 text-white',
+  pending:    'bg-sand2 text-ink3 border border-sand3',
+  unknown:    'bg-sand2 text-ink4 border border-sand3',
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  audit_done: 'Audit Done',
+  approved:   'Approved',
+  paid:       'Paid',
+  pending:    'Pending',
+  unknown:    'Unknown',
 }
 
 export default function InvoicesPage() {
@@ -34,6 +44,7 @@ export default function InvoicesPage() {
   const [uploadMsg, setUploadMsg] = useState('')
   const [uploadWarnings, setUploadWarnings] = useState<string[]>([])
   const [pushing, setPushing] = useState<string | null>(null)
+  const [actioning, setActioning] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const { refreshKey } = useRefresh()
 
@@ -93,6 +104,27 @@ export default function InvoicesPage() {
       alert('Failed to send to ClickUp')
     } finally {
       setPushing(null)
+    }
+  }
+
+  async function handleStatusChange(id: string, newStatus: string) {
+    setActioning(id)
+    try {
+      const res = await fetch(`/api/invoices/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      })
+      const d = await res.json()
+      if (res.ok) {
+        setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: newStatus } : inv))
+      } else {
+        alert(`Error: ${d.error}`)
+      }
+    } catch {
+      alert('Request failed')
+    } finally {
+      setActioning(null)
     }
   }
 
@@ -171,7 +203,7 @@ export default function InvoicesPage() {
                     )}
                     <th className="text-center py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Status</th>
                     {isAdmin && (
-                      <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">ClickUp</th>
+                      <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Actions</th>
                     )}
                   </tr>
                 </thead>
@@ -194,25 +226,56 @@ export default function InvoicesPage() {
                       )}
                       <td className="py-2.5 px-3 text-center">
                         <span className={`text-[10px] font-bold px-1.5 py-0.5 uppercase ${STATUS_STYLE[inv.status] ?? STATUS_STYLE.unknown}`}>
-                          {inv.status}
+                          {STATUS_LABEL[inv.status] ?? inv.status}
                         </span>
                       </td>
                       {isAdmin && (
                         <td className="py-2.5 px-3">
-                          {inv.clickupTaskId ? (
-                            <a href={inv.clickupUrl ?? '#'} target="_blank" rel="noopener noreferrer"
-                               className="text-xs text-ink4 hover:text-ink underline">
-                              View ↗
-                            </a>
-                          ) : (
-                            <button
-                              onClick={() => handleSendToClickUp(inv.id)}
-                              disabled={pushing === inv.id}
-                              className="text-xs text-ink3 border border-sand3 px-2 py-0.5 hover:border-ink3 hover:text-ink transition-colors disabled:opacity-40"
-                            >
-                              {pushing === inv.id ? '…' : '+ ClickUp'}
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {/* Workflow action buttons */}
+                            {inv.status === 'pending' && (
+                              <button
+                                onClick={() => handleStatusChange(inv.id, 'audit_done')}
+                                disabled={actioning === inv.id}
+                                className="text-xs font-semibold border border-blue-400 text-blue-700 px-2 py-0.5 hover:bg-blue-50 transition-colors disabled:opacity-40"
+                              >
+                                {actioning === inv.id ? '…' : 'Audit Done'}
+                              </button>
+                            )}
+                            {inv.status === 'audit_done' && isOwner && (
+                              <button
+                                onClick={() => handleStatusChange(inv.id, 'approved')}
+                                disabled={actioning === inv.id}
+                                className="text-xs font-semibold border border-green-600 text-green-700 px-2 py-0.5 hover:bg-green-50 transition-colors disabled:opacity-40"
+                              >
+                                {actioning === inv.id ? '…' : 'Approve'}
+                              </button>
+                            )}
+                            {inv.status === 'approved' && isOwner && (
+                              <button
+                                onClick={() => handleStatusChange(inv.id, 'paid')}
+                                disabled={actioning === inv.id}
+                                className="text-xs font-semibold border border-ink text-ink px-2 py-0.5 hover:bg-ink hover:text-white transition-colors disabled:opacity-40"
+                              >
+                                {actioning === inv.id ? '…' : 'Mark Paid'}
+                              </button>
+                            )}
+                            {/* ClickUp link or push */}
+                            {inv.clickupTaskId ? (
+                              <a href={inv.clickupUrl ?? '#'} target="_blank" rel="noopener noreferrer"
+                                 className="text-xs text-ink4 hover:text-ink underline">
+                                CU ↗
+                              </a>
+                            ) : (
+                              <button
+                                onClick={() => handleSendToClickUp(inv.id)}
+                                disabled={pushing === inv.id}
+                                className="text-xs text-ink4 border border-sand3 px-1.5 py-0.5 hover:border-ink3 hover:text-ink transition-colors disabled:opacity-40"
+                              >
+                                {pushing === inv.id ? '…' : '+ CU'}
+                              </button>
+                            )}
+                          </div>
                         </td>
                       )}
                     </tr>
