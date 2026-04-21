@@ -89,6 +89,27 @@ async function generateDailyReport() {
     `→ Full dashboard: ${baseUrl}`,
   ].join('\n')
 
+  const WEEKLY_REPORTS_CHANNEL = process.env.SLACK_CHANNEL_WEEKLY_REPORTS ?? 'C08K6KM53FV'
+
+  const weeklyReportTemplate = [
+    `#myweeklyreport`,
+    ``,
+    `1. What business outcomes did you drive this week?`,
+    `2. Did you accomplish your top goals from last week? If not, why not?`,
+    `3. Deliverables Authored or Significantly Edited`,
+    `4. Automations built or improved`,
+    `5. Processes Executed`,
+    `6. Automation ROI this week`,
+    `7. Key deals & relationships nurtured`,
+    `8. Help Needed / Dependencies / Blockers`,
+    `9. Most Interesting Thing You Heard / Read This Week`,
+    `10. Top 3-5 Priorities for Next Week`,
+    `11. Win of the Week`,
+    `12. (Optional) Kudos`,
+    `13. (Optional) Friction`,
+    `14. (Optional) What's new with you?`,
+  ].join('\n')
+
   let slackTs: string | undefined
   if (slackToken) {
     const res = await fetch('https://slack.com/api/chat.postMessage', {
@@ -101,6 +122,28 @@ async function generateDailyReport() {
     // Store slack_message_ts
     if (slackTs) {
       await supabase.from('vcos_daily_reports').update({ slack_message_ts: slackTs }).eq('report_date', today)
+    }
+
+    // Post reminder to #weeklyreports if anyone is missing
+    if (missing.length > 0) {
+      const names = missing.map(n => n.split(' ')[0]).join(', ')
+      const reminderMsg = [
+        `📋 *Weekly Report Reminder — ${dayLabel}*`,
+        ``,
+        `${names} — your weekly report hasn't been submitted yet this week.`,
+        ``,
+        `Please post your report in this channel using the template below. Make sure to include *#myweeklyreport* at the top so it's counted in the system.`,
+        ``,
+        `\`\`\``,
+        weeklyReportTemplate,
+        `\`\`\``,
+      ].join('\n')
+
+      await fetch('https://slack.com/api/chat.postMessage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${slackToken}` },
+        body: JSON.stringify({ channel: WEEKLY_REPORTS_CHANNEL, text: reminderMsg }),
+      })
     }
   }
 
