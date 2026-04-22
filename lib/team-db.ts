@@ -4,10 +4,16 @@ export interface TeamMemberRow {
   id: string
   full_name: string
   vcos_username: string | null
+  email: string | null
   slack_aliases: string[]
+  slack_user_id: string | null
   clickup_key: string | null
+  clickup_user_id: string | null
   braintrust_name: string | null
   webwork_username: string | null
+  webwork_user_id: string | null
+  webwork_contract_id: string | null
+  fireflies_email: string | null
   role_description: string | null
   hourly_rate: number
   bills_hours: boolean

@@ -3,8 +3,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { COOKIE_NAME, verifySession } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
+import { CLICKUP_INVOICE_LIST_ID } from '@/lib/constants'
 
-const LIST_ID = process.env.CLICKUP_INVOICE_LIST_ID ?? '901113518927'
+const LIST_ID = process.env.CLICKUP_INVOICE_LIST_ID ?? CLICKUP_INVOICE_LIST_ID
 
 export async function POST(
   req: NextRequest,

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { postMessage } from '@/lib/slack'
 
-const DEFAULT_CHANNEL = 'C08K6KM53FV' // #weeklyreports
+import { SLACK_CHANNEL_WEEKLY_REPORTS } from '@/lib/constants'
+const DEFAULT_CHANNEL = process.env.SLACK_CHANNEL_WEEKLY_REPORTS ?? SLACK_CHANNEL_WEEKLY_REPORTS
 
 export async function POST(req: NextRequest) {
   if (!process.env.SLACK_BOT_TOKEN) {

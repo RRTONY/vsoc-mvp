@@ -4,14 +4,20 @@ export const CLICKUP_WORKSPACE_ID = '10643959'
 export const CLICKUP_WORKSPACE_URL = `https://app.clickup.com/${CLICKUP_WORKSPACE_ID}`
 
 export const SLACK_CHANNEL_WEEKLY_REPORTS = 'C08K6KM53FV'
-export const SLACK_WORKSPACE_URL = 'https://app.slack.com/client/T08K6KLDMJA'
+export const SLACK_ADMIN_CHANNEL          = 'C08MKQ2PH2R'
+export const SLACK_WORKSPACE_URL          = 'https://app.slack.com/client/T08K6KLDMJA'
+
+export const CLICKUP_INVOICE_LIST_ID = '901113518927'
 
 // ClickUp priority IDs (from ClickUp API)
 export const PRIORITY_URGENT = '1'
 export const PRIORITY_HIGH   = '2'
 
 // Dashboard thresholds
-export const OVERDUE_ALERT_THRESHOLD = 70  // % overdue before red alert
+export const OVERDUE_ALERT_THRESHOLD      = 70  // % overdue before red alert
+export const DEAL_COLD_DAYS               = 14  // days since last contact → "gone cold"
+export const DEAL_STUCK_DAYS              = 21  // days in same stage → "stuck"
+export const INVOICE_PENDING_ALERT_DAYS   = 7   // days pending → flag in open loops
 
 // Cache TTLs
 export const CACHE_TTL_SYSTEMS_MS  = 5 * 60 * 1000   // 5 min

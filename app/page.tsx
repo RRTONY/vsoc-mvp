@@ -3,23 +3,17 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRefresh } from '@/components/RefreshContext'
 import { ShareSlackButton } from '@/components/ShareButtons'
-import { TEAM, REPORT_MEMBERS } from '@/lib/team'
-import type { TeamMember } from '@/lib/team'
 import type { Task, ClickUpData, SlackData, WebWorkMember } from '@/lib/types'
 import StaleBadge from '@/components/StaleBadge'
+import { useMe } from '@/hooks/useMe'
+import { CLICKUP_WORKSPACE_URL, SLACK_WORKSPACE_URL, SLACK_CHANNEL_WEEKLY_REPORTS, OVERDUE_ALERT_THRESHOLD } from '@/lib/constants'
+
+interface TeamMember { name: string; cuKey: string; role: string; filesReport: boolean }
+interface OKR { id: string; label: string; pct: number; note: string }
 import dynamic from 'next/dynamic'
 const CrmDonut = dynamic(() => import('@/components/charts/CrmDonut'), { ssr: false })
 const OkrRings = dynamic(() => import('@/components/charts/OkrRing'), { ssr: false })
 const MemberSparkline = dynamic(() => import('@/components/charts/MemberSparkline'), { ssr: false })
-
-const OKRS = [
-  { id: 'OKR01', label: '$5M Revenue', pct: 1, note: '$31K YTD · need $95K/wk' },
-  { id: 'OKR02', label: 'Pipeline', pct: 38, note: '30 active deals' },
-  { id: 'OKR03', label: 'Action Close Rate', pct: 11, note: '8/75 · target 90%' },
-  { id: 'OKR04', label: 'STBL Gatekeepers', pct: 10, note: 'From 23K LinkedIn DB' },
-  { id: 'OKR05', label: 'Accounting Fix', pct: 40, note: 'Hiline fired · new search' },
-  { id: 'OKR06', label: 'Website Migration', pct: 100, note: 'ramprate.com DONE ✓' },
-]
 
 
 function findStats(
@@ -141,7 +135,7 @@ function MemberCard({
               {tasks.slice(0, 15).map((t) => <TaskRow key={t.id} t={t} />)}
               {tasks.length > 15 && (
                 <a
-                  href="https://app.clickup.com/10643959/home"
+                  href="{`${CLICKUP_WORKSPACE_URL}/home`}"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="block text-sm text-accent hover:underline py-3"
@@ -163,8 +157,46 @@ export default function DashboardPage() {
   const [webwork, setWebwork] = useState<{ members: WebWorkMember[] } | null>(null)
   const [screenshots, setScreenshots] = useState<Record<string, { url: string; filename: string; capturedAt: string | null }[]> | null>(null)
   const [loading, setLoading] = useState(true)
+  const [team, setTeam] = useState<TeamMember[]>([])
+  const [okrs, setOkrs] = useState<OKR[]>([])
+  const [editingOkr, setEditingOkr] = useState<string | null>(null)
+  const [okrDraft, setOkrDraft] = useState<{ pct: number; note: string }>({ pct: 0, note: '' })
+  const [savingOkr, setSavingOkr] = useState(false)
   const { refreshKey, freshClickUp } = useRefresh()
   const prevKey = useRef(refreshKey)
+  const { isOwner } = useMe()
+
+  useEffect(() => {
+    fetch('/api/team', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: Array<{ full_name: string; clickup_key: string | null; role_description: string | null; files_report: boolean; active: boolean }>) => {
+        setTeam((data ?? []).filter(m => m.active).map(m => ({
+          name: m.full_name,
+          cuKey: m.clickup_key ?? m.full_name.split(' ')[0].toLowerCase(),
+          role: m.role_description ?? '',
+          filesReport: m.files_report,
+        })))
+      }).catch(() => {})
+    fetch('/api/okrs', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: OKR[]) => { if (Array.isArray(data)) setOkrs(data) })
+      .catch(() => {})
+  }, [])
+
+  async function saveOkr(id: string) {
+    setSavingOkr(true)
+    const res = await fetch('/api/okrs', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...okrDraft }),
+    })
+    if (res.ok) {
+      const updated = await res.json()
+      setOkrs(prev => prev.map(o => o.id === id ? { ...o, ...updated } : o))
+      setEditingOkr(null)
+    }
+    setSavingOkr(false)
+  }
 
   const load = useCallback(async (cancelled: { v: boolean }, cachedClickUp?: Record<string, unknown> | null) => {
     setLoading(true)
@@ -210,7 +242,7 @@ export default function DashboardPage() {
       text: (
         <span className="flex items-center justify-between gap-2 w-full">
           <span><strong>Reports missing:</strong> {missing.join(', ')} have not filed this week.</span>
-          <a href="https://app.slack.com/client/T08K6KLDMJA/C08K6KM53FV" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">Slack channel ↗</a>
+          <a href="{`${SLACK_WORKSPACE_URL}/${SLACK_CHANNEL_WEEKLY_REPORTS}`}" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">Slack channel ↗</a>
         </span>
       ),
     })
@@ -219,43 +251,16 @@ export default function DashboardPage() {
       text: (
         <span className="flex items-center justify-between gap-2 w-full">
           <span><strong>{clickup?.urgent} urgent tasks</strong> across the team need immediate resolution.</span>
-          <a href="https://app.clickup.com/10643959/home" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">ClickUp ↗</a>
+          <a href="{`${CLICKUP_WORKSPACE_URL}/home`}" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">ClickUp ↗</a>
         </span>
       ),
     })
-    if ((clickup?.overduePercent ?? 0) > 70) actions.push({
+    if ((clickup?.overduePercent ?? 0) > OVERDUE_ALERT_THRESHOLD) actions.push({
       level: 'red',
       text: (
         <span className="flex items-center justify-between gap-2 w-full">
           <span><strong>CRM overdue at {clickup?.overduePercent}%</strong> — {clickup?.overdue} of {clickup?.totalTasks} tasks past due. Needs triage.</span>
-          <a href="https://app.clickup.com/10643959/home" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">ClickUp ↗</a>
-        </span>
-      ),
-    })
-    actions.push({
-      level: 'red',
-      text: (
-        <span className="flex items-center justify-between gap-2 w-full">
-          <span><strong>BILL.com:</strong> 12 sync conflicts + Holographik invoice pending — Kim to resolve.</span>
-          <a href="https://app.bill.com" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">BILL.com ↗</a>
-        </span>
-      ),
-    })
-    actions.push({
-      level: 'amber',
-      text: (
-        <span className="flex items-center justify-between gap-2 w-full">
-          <span><strong>Braintrust template:</strong> 4-point checklist not integrated. Kim due Mar 18.</span>
-          <a href="https://app.clickup.com/t/868hwv6u4" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">Task ↗</a>
-        </span>
-      ),
-    })
-    actions.push({
-      level: 'blue',
-      text: (
-        <span className="flex items-center justify-between gap-2 w-full">
-          <span><strong>Decision needed:</strong> ImpactSoul legal entity formation — no entity = no grants, no Series A.</span>
-          <a href="https://app.clickup.com/10643959/home" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">Add task ↗</a>
+          <a href="{`${CLICKUP_WORKSPACE_URL}/home`}" target="_blank" rel="noopener noreferrer" className="underline whitespace-nowrap text-xs">ClickUp ↗</a>
         </span>
       ),
     })
@@ -282,7 +287,7 @@ export default function DashboardPage() {
 
   const shareMsg = [
     `📊 *CEO Status Brief — Week of ${week}*`,
-    `Reports: ${filed.length}/${REPORT_MEMBERS.length} filed${missing.length ? ` · Missing: ${missing.map(n => n.split(' ')[0]).join(', ')}` : ' ✅'}`,
+    `Reports: ${filed.length}/${team.filter(m => m.filesReport).length} filed${missing.length ? ` · Missing: ${missing.map(n => n.split(' ')[0]).join(', ')}` : ' ✅'}`,
     clickup ? `CRM: ${clickup.overduePercent}% overdue (${clickup.overdue}/${clickup.totalTasks}) · ${clickup.urgent} urgent` : '',
     `_From Visual Chief of Staff_`,
     missing.length ? [
@@ -318,7 +323,7 @@ export default function DashboardPage() {
         {/* Reports filed */}
         <div className={`stat-tile ${loading ? 'animate-pulse' : ''}`}>
           <div className={`stat-value ${!loading && missing.length > 0 ? 'text-danger' : 'text-success'}`}>
-            {loading ? '—' : `${filed.length}/${REPORT_MEMBERS.length}`}
+            {loading ? '—' : `${filed.length}/${team.filter(m => m.filesReport).length}`}
           </div>
           <div className="stat-label">Reports Filed</div>
           {!loading && (
@@ -328,7 +333,7 @@ export default function DashboardPage() {
             <div className="progress-track mt-2">
               <div
                 className={`progress-fill ${missing.length > 0 ? 'bg-danger' : 'bg-success'}`}
-                style={{ width: `${Math.round((filed.length / REPORT_MEMBERS.length) * 100)}%` }}
+                style={{ width: `${Math.round((filed.length / team.filter(m => m.filesReport).length) * 100)}%` }}
               />
             </div>
           )}
@@ -384,7 +389,7 @@ export default function DashboardPage() {
       <div className="slbl mt-6">Team Assignment Board</div>
       <p className="text-xs text-ink4 mb-3">Click any team member to see their assigned tasks from ClickUp.</p>
       <div className="space-y-2 mb-6">
-        {TEAM.map((member) => {
+        {team.map((member) => {
           const wwMember = webwork?.members?.find((m) => m.username === member.cuKey)
           return (
             <MemberCard
@@ -405,7 +410,7 @@ export default function DashboardPage() {
         <div className="mb-6">
           <div className="slbl">Team Screenshots — Today</div>
           <div className="card divide-y divide-sand3">
-            {TEAM.filter(m => screenshots[m.cuKey]?.length > 0).map(member => {
+            {team.filter(m => screenshots[m.cuKey]?.length > 0).map(member => {
               const shots = screenshots[member.cuKey] ?? []
               return (
                 <div key={member.cuKey} className="px-4 py-3">
@@ -453,7 +458,50 @@ export default function DashboardPage() {
       {/* OKR Pulse */}
       <div className="slbl">OKR Pulse</div>
       <div className="card mb-6 px-5">
-        <OkrRings okrs={OKRS} />
+        <OkrRings okrs={okrs} />
+        {isOwner && okrs.length > 0 && (
+          <div className="border-t border-sand3 pt-3 pb-2 space-y-2">
+            {okrs.map((o) => (
+              <div key={o.id} className="flex items-center gap-2 text-xs">
+                {editingOkr === o.id ? (
+                  <>
+                    <span className="w-28 font-semibold text-ink shrink-0 truncate">{o.label}</span>
+                    <input
+                      type="number" min={0} max={100} step={1}
+                      className="field-input w-16 text-right font-mono"
+                      value={okrDraft.pct}
+                      onChange={e => setOkrDraft(d => ({ ...d, pct: Math.min(100, Math.max(0, parseInt(e.target.value) || 0)) }))}
+                    />
+                    <span className="text-ink4">%</span>
+                    <input
+                      type="text"
+                      className="field-input flex-1 min-w-0"
+                      value={okrDraft.note}
+                      onChange={e => setOkrDraft(d => ({ ...d, note: e.target.value }))}
+                      placeholder="Note…"
+                    />
+                    <button
+                      className="btn-primary text-xs py-0.5 px-2 disabled:opacity-50"
+                      disabled={savingOkr}
+                      onClick={() => saveOkr(o.id)}
+                    >{savingOkr ? '…' : 'Save'}</button>
+                    <button className="text-ink4 hover:text-ink px-1" onClick={() => setEditingOkr(null)}>✕</button>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-28 font-semibold text-ink shrink-0 truncate">{o.label}</span>
+                    <span className="font-mono w-8 text-right">{o.pct}%</span>
+                    <span className="text-ink4 flex-1 truncate">{o.note}</span>
+                    <button
+                      className="text-ink4 hover:text-ink px-1"
+                      onClick={() => { setEditingOkr(o.id); setOkrDraft({ pct: o.pct, note: o.note ?? '' }) }}
+                    >✏</button>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

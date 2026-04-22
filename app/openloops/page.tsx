@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRefresh } from '@/components/RefreshContext'
+import { CLICKUP_WORKSPACE_URL, SLACK_WORKSPACE_URL, SLACK_CHANNEL_WEEKLY_REPORTS, OVERDUE_ALERT_THRESHOLD, DEAL_COLD_DAYS, DEAL_STUCK_DAYS, INVOICE_PENDING_ALERT_DAYS } from '@/lib/constants'
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -78,7 +79,7 @@ export default function OpenLoopsPage() {
           category: 'Reports',
           text: `${missing.length} team member${missing.length > 1 ? 's' : ''} have not filed this week`,
           sub: missing.map((n: string) => n.split(' ')[0]).join(', '),
-          url: 'https://app.slack.com/client/T08K6KLDMJA/C08K6KM53FV',
+          url: `${SLACK_WORKSPACE_URL}/${SLACK_CHANNEL_WEEKLY_REPORTS}`,
         })
       }
 
@@ -111,14 +112,14 @@ export default function OpenLoopsPage() {
       }
 
       // ── CRM Tasks: overdue % alert ───────────────────────────────────────
-      if ((cu?.overduePercent ?? 0) > 70) {
+      if ((cu?.overduePercent ?? 0) > OVERDUE_ALERT_THRESHOLD) {
         found.push({
           id: 'cu-overdue-pct',
           severity: 'critical',
           category: 'CRM Tasks',
           text: `${cu.overduePercent}% of ClickUp tasks are overdue (${cu.overdue}/${cu.totalTasks})`,
           sub: 'CRM needs triage — too many stale tasks',
-          url: 'https://app.clickup.com/10643959/home',
+          url: `${CLICKUP_WORKSPACE_URL}/home`,
         })
       }
 
@@ -147,7 +148,7 @@ export default function OpenLoopsPage() {
       const cold = deals.filter(d => {
         if (d.stage === 'Deferred') return false
         if (!d.last_contact) return false
-        return (today - new Date(d.last_contact).getTime()) / 86400000 > 14
+        return (today - new Date(d.last_contact).getTime()) / 86400000 > DEAL_COLD_DAYS
       })
       if (cold.length > 0) {
         found.push({
@@ -163,7 +164,7 @@ export default function OpenLoopsPage() {
       // Deals stuck in same stage 21d+
       const stuck = deals.filter(d => {
         if (d.stage === 'Deferred' || !d.entered_stage_at) return false
-        return (today - new Date(d.entered_stage_at).getTime()) / 86400000 > 21
+        return (today - new Date(d.entered_stage_at).getTime()) / 86400000 > DEAL_STUCK_DAYS
       })
       if (stuck.length > 0) {
         found.push({
@@ -195,7 +196,7 @@ export default function OpenLoopsPage() {
       // Invoices older than 7 days still pending
       const oldPending = pending.filter(i => {
         if (!i.parsedAt) return false
-        return (today - new Date(i.parsedAt).getTime()) / 86400000 > 7
+        return (today - new Date(i.parsedAt).getTime()) / 86400000 > INVOICE_PENDING_ALERT_DAYS
       })
       if (oldPending.length > 0) {
         found.push({

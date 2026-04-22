@@ -3,7 +3,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { postMessage } from '@/lib/slack'
 import { getSupabase } from '@/lib/supabase'
 
-const SLACK_CHANNEL = 'C08K6KM53FV'
+import { SLACK_CHANNEL_WEEKLY_REPORTS } from '@/lib/constants'
+const SLACK_CHANNEL = process.env.SLACK_CHANNEL_WEEKLY_REPORTS ?? SLACK_CHANNEL_WEEKLY_REPORTS
 
 interface ReportBody {
   name: string

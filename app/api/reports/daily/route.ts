@@ -5,6 +5,7 @@ import { buildClickUpSnapshot } from '@/lib/clickup'
 import { buildSlackSnapshot } from '@/lib/slack'
 import { buildWebWorkSnapshot } from '@/lib/webwork'
 import { buildFirefliesSnapshot } from '@/lib/fireflies'
+import { SLACK_CHANNEL_WEEKLY_REPORTS, SLACK_ADMIN_CHANNEL } from '@/lib/constants'
 
 async function generateDailyReport() {
   const today = new Date().toISOString().slice(0, 10)
@@ -68,7 +69,7 @@ async function generateDailyReport() {
 
   // Post to Slack
   const slackToken = process.env.SLACK_BOT_TOKEN
-  const channel = process.env.SLACK_ADMIN_CHANNEL ?? 'C08MKQ2PH2R'
+  const channel = process.env.SLACK_ADMIN_CHANNEL ?? SLACK_ADMIN_CHANNEL
   const dayLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
 
   const systemLine = Object.entries(systemHealth)
@@ -78,7 +79,7 @@ async function generateDailyReport() {
   const slackMsg = [
     `📊 *VCOS Daily Brief — ${dayLabel}*`,
     ``,
-    `✅ Reports Filed (${filed.length}/8): ${filed.length ? filed.map(n => n.split(' ')[0]).join(' · ') : 'none'}`,
+    `✅ Reports Filed (${filed.length}/${filed.length + missing.length}): ${filed.length ? filed.map(n => n.split(' ')[0]).join(' · ') : 'none'}`,
     missing.length ? `❌ Missing (${missing.length}): ${missing.map(n => n.split(' ')[0]).join(' · ')}` : `✅ All reports filed`,
     ``,
     `⚠️ CRM: ${overdueCount} overdue of ${totalTasks} tasks · ${urgentCount} urgent`,
@@ -89,7 +90,7 @@ async function generateDailyReport() {
     `→ Full dashboard: ${baseUrl}`,
   ].join('\n')
 
-  const WEEKLY_REPORTS_CHANNEL = process.env.SLACK_CHANNEL_WEEKLY_REPORTS ?? 'C08K6KM53FV'
+  const WEEKLY_REPORTS_CHANNEL = process.env.SLACK_CHANNEL_WEEKLY_REPORTS ?? SLACK_CHANNEL_WEEKLY_REPORTS
 
   const weeklyReportTemplate = [
     `#myweeklyreport`,

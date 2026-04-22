@@ -3,9 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRefresh } from '@/components/RefreshContext'
 import { ShareSlackButton } from '@/components/ShareButtons'
-import { TEAM } from '@/lib/team'
 import type { Task, ClickUpData, SlackData, WebWorkMember, Meeting } from '@/lib/types'
+interface TeamMember { name: string; cuKey: string; role: string; filesReport: boolean }
+interface OKR { id: string; label: string; pct: number; note: string }
 import { useMe } from '@/hooks/useMe'
+import { CLICKUP_WORKSPACE_URL } from '@/lib/constants'
 import StaleBadge from '@/components/StaleBadge'
 import MeetingTimeline from '@/components/MeetingTimeline'
 import dynamic from 'next/dynamic'
@@ -28,14 +30,6 @@ interface DailyReport {
   slack_message_ts: string | null
 }
 
-const OKRS = [
-  { id: 'OKR01', label: '$5M Revenue', pct: 1, note: '$31K YTD · need $95K/wk' },
-  { id: 'OKR02', label: 'Pipeline', pct: 38, note: '30 active deals' },
-  { id: 'OKR03', label: 'Action Close Rate', pct: 11, note: '8/75 · target 90%' },
-  { id: 'OKR04', label: 'STBL Gatekeepers', pct: 10, note: 'From 23K LinkedIn DB' },
-  { id: 'OKR05', label: 'Accounting Fix', pct: 40, note: 'Hiline fired · new search' },
-  { id: 'OKR06', label: 'Website Migration', pct: 100, note: 'ramprate.com DONE ✓' },
-]
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -105,7 +99,7 @@ function MemberRollup({ name, stats, tasks, didFile, flow, loading }: {
                 </a>
               ))}
               {tasks.length > 20 && (
-                <a href="https://app.clickup.com/10643959/home" target="_blank" rel="noopener noreferrer"
+                <a href="{`${CLICKUP_WORKSPACE_URL}/home`}" target="_blank" rel="noopener noreferrer"
                   className="block text-xs text-ink4 hover:underline py-2">
                   +{tasks.length - 20} more in ClickUp ↗
                 </a>
@@ -130,8 +124,15 @@ function MeetingCard({ m }: { m: Meeting }) {
           <div className="text-sm font-bold truncate">{m.title}</div>
           <div className="text-xs text-ink3 mt-0.5">
             {m.date}{m.duration ? ` · ${m.duration}` : ''}
-            {m.participants.length ? ` · ${m.participants.slice(0, 3).join(', ')}${m.participants.length > 3 ? ` +${m.participants.length - 3}` : ''}` : ''}
+            {m.participants.length ? ` · ${m.participants.length} attendee${m.participants.length !== 1 ? 's' : ''}` : ''}
           </div>
+          {m.teamParticipants && m.teamParticipants.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {m.teamParticipants.map(name => (
+                <span key={name} className="text-[10px] font-bold bg-accent-light text-accent px-1.5 py-0.5">{name.split(' ')[0]}</span>
+              ))}
+            </div>
+          )}
         </div>
         <span className="text-ink4 text-xs mt-0.5 flex-shrink-0">{open ? '▲' : '▼'}</span>
       </button>
@@ -274,12 +275,14 @@ function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolea
 export default function ReportsPage() {
   const [tab, setTab] = useState<'weekly' | 'submitted' | 'daily' | 'hours'>('weekly')
   const [reportMembers, setReportMembers] = useState<string[]>([])
+  const [team, setTeam] = useState<TeamMember[]>([])
+  const [okrs, setOkrs] = useState<OKR[]>([])
   const [slack, setSlack] = useState<SlackData | null>(null)
   const [clickup, setClickUp] = useState<ClickUpData | null>(null)
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState(true)
   const [lastFetched, setLastFetched] = useState('')
-  const { isAdmin } = useMe()
+  const { isAdmin, me } = useMe()
   const [dailyHistory, setDailyHistory] = useState<DailyReport[]>([])
   const [dailyLoading, setDailyLoading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
@@ -287,7 +290,6 @@ export default function ReportsPage() {
   const [submittedLoading, setSubmittedLoading] = useState(false)
   const [filterMember, setFilterMember] = useState('')
   const [filterWeek, setFilterWeek] = useState('')
-  const { me } = useMe()
   const [webworkData, setWebworkData] = useState<{ week: string[]; lastWeek?: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
@@ -296,9 +298,20 @@ export default function ReportsPage() {
   useEffect(() => {
     fetch('/api/team', { cache: 'no-store' })
       .then(r => r.json())
-      .then((data: Array<{ full_name: string; files_report: boolean; active: boolean }>) =>
-        setReportMembers((data ?? []).filter(m => m.active && m.files_report).map(m => m.full_name))
-      )
+      .then((data: Array<{ full_name: string; clickup_key: string | null; role_description: string | null; files_report: boolean; active: boolean }>) => {
+        const active = (data ?? []).filter(m => m.active)
+        setReportMembers(active.filter(m => m.files_report).map(m => m.full_name))
+        setTeam(active.map(m => ({
+          name: m.full_name,
+          cuKey: m.clickup_key ?? m.full_name.split(' ')[0].toLowerCase(),
+          role: m.role_description ?? '',
+          filesReport: m.files_report,
+        })))
+      })
+      .catch(() => {})
+    fetch('/api/okrs', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: OKR[]) => { if (Array.isArray(data)) setOkrs(data) })
       .catch(() => {})
   }, [])
 
@@ -382,7 +395,7 @@ export default function ReportsPage() {
     clickup ? `${clickup.overduePercent}% overdue (${clickup.overdue}/${clickup.totalTasks} tasks) · ${clickup.urgent} urgent` : 'Data unavailable',
     ``,
     `*OKRs*`,
-    OKRS.map(o => `${o.id}: ${o.label} — ${o.pct}% (${o.note})`).join('\n'),
+    okrs.map(o => `${o.label} — ${o.pct}% (${o.note})`).join('\n'),
     ``,
     `_Posted from Visual Chief of Staff_`,
   ].join('\n')
@@ -666,7 +679,7 @@ export default function ReportsPage() {
       {/* Team status roll-up */}
       <Section title="Team Assignment Roll-Up">
         <div className="space-y-2">
-          {TEAM.map((member) => {
+          {team.map((member) => {
             const stats = clickup?.assigneeStats
               ? Object.entries(clickup.assigneeStats).find(([k]) => k.includes(member.cuKey))?.[1]
               : null
@@ -723,7 +736,7 @@ export default function ReportsPage() {
       {/* OKR Roll-Up */}
       <Section title="OKR Roll-Up">
         <div className="card px-5">
-          <OkrRings okrs={OKRS} />
+          <OkrRings okrs={okrs} />
         </div>
       </Section>
 
@@ -764,7 +777,7 @@ export default function ReportsPage() {
         <div className="flex flex-wrap gap-2 pb-8">
           <ShareSlackButton label="Post Full Report to Slack" message={fullReportMsg} />
           <a
-            href="https://app.clickup.com/10643959/home"
+            href="{`${CLICKUP_WORKSPACE_URL}/home`}"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 border border-sand3 px-3 py-1.5 text-xs font-bold hover:bg-sand2 transition-colors"

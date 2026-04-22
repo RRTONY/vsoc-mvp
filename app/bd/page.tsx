@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useMe } from '@/hooks/useMe'
-import { REPORT_MEMBERS } from '@/lib/team'
+import { DEAL_COLD_DAYS, DEAL_STUCK_DAYS } from '@/lib/constants'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -61,6 +61,7 @@ interface KpiData {
   urgent: number
   invoiceCount: number
   invoicePending: number
+  closedYtd: number
 }
 
 const STAGE_COLOR: Record<string, string> = {
@@ -251,8 +252,8 @@ function DealCard({
   const [expanded, setExpanded] = useState(false)
   const daysInStage = daysSince(deal.entered_stage_at)
   const daysSinceContact = daysSince(deal.last_contact)
-  const isStuck = daysInStage !== null && daysInStage > 21
-  const isCold = daysSinceContact !== null && daysSinceContact > 14
+  const isStuck = daysInStage !== null && daysInStage > DEAL_STUCK_DAYS
+  const isCold = daysSinceContact !== null && daysSinceContact > DEAL_COLD_DAYS
 
   return (
     <div
@@ -350,19 +351,18 @@ function DealCard({
 // ─── Edit Modal ─────────────────────────────────────────────────────────────
 
 function EditModal({
-  deal, onSave, onClose, onDelete, isAdmin,
+  deal, onSave, onClose, onDelete, isAdmin, teamNames,
 }: {
   deal: Partial<BdDeal> & { id?: string }
   onSave: (data: Omit<BdDeal, 'id'>) => void
   onClose: () => void
   onDelete?: () => void
   isAdmin: boolean
+  teamNames: string[]
 }) {
   const [form, setForm] = useState({ ...EMPTY_DEAL, ...deal })
   const set = (k: keyof typeof EMPTY_DEAL, v: string | number | null) =>
     setForm(f => ({ ...f, [k]: v }))
-
-  const TEAM_NAMES = REPORT_MEMBERS
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -433,7 +433,7 @@ function EditModal({
               <label className="field-label">Owner</label>
               <select className="field-input" value={form.owner} onChange={e => set('owner', e.target.value)}>
                 <option value="">— Select —</option>
-                {TEAM_NAMES.map(n => <option key={n}>{n}</option>)}
+                {teamNames.map((n: string) => <option key={n}>{n}</option>)}
               </select>
             </div>
             <div>
@@ -461,7 +461,7 @@ function EditModal({
             <label className="field-label">Next Action By</label>
             <select className="field-input" value={form.next_action_by} onChange={e => set('next_action_by', e.target.value)}>
               <option value="">— Select —</option>
-              {TEAM_NAMES.map(n => <option key={n}>{n}</option>)}
+              {teamNames.map((n: string) => <option key={n}>{n}</option>)}
             </select>
           </div>
 
@@ -515,6 +515,15 @@ export default function BdPage() {
   const [today, setToday] = useState('')
   const [editDeal, setEditDeal] = useState<Partial<BdDeal> | null>(null)
   const [saving, setSaving] = useState(false)
+  const [teamNames, setTeamNames] = useState<string[]>([])
+
+  useEffect(() => {
+    fetch('/api/team', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: Array<{ full_name: string; active: boolean }>) =>
+        setTeamNames((data ?? []).filter(m => m.active).map(m => m.full_name))
+      ).catch(() => {})
+  }, [])
 
   useEffect(() => {
     setToday(new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }))
@@ -529,7 +538,7 @@ export default function BdPage() {
         teamHours: ww?.members?.reduce((s: number, m: { totalHours: number }) => s + m.totalHours, 0) ?? 0,
         memberHours: ww?.members ?? [],
         reportsFiled: slack?.weeklyReports?.filed?.length ?? 0,
-        reportsTotal: REPORT_MEMBERS.length,
+        reportsTotal: (slack?.weeklyReports?.filed?.length ?? 0) + (slack?.weeklyReports?.missing?.length ?? 0),
         reportsMissing: slack?.weeklyReports?.missing ?? [],
         totalTasks: cu?.totalTasks ?? 0,
         overdue: cu?.overdue ?? 0,
@@ -537,6 +546,7 @@ export default function BdPage() {
         urgent: cu?.urgent ?? 0,
         invoiceCount: inv?.invoices?.length ?? 0,
         invoicePending: inv?.invoices?.filter((i: { status: string }) => i.status === 'pending').length ?? 0,
+        closedYtd: inv?.invoices?.filter((i: { status: string }) => i.status === 'paid').reduce((s: number, i: { amount: number }) => s + (i.amount ?? 0), 0) ?? 0,
       })
       setKpiLoading(false)
     })
@@ -606,6 +616,7 @@ export default function BdPage() {
           onSave={handleSave}
           onClose={() => setEditDeal(null)}
           onDelete={editDeal.id ? () => handleDelete(editDeal.id!) : undefined}
+          teamNames={teamNames}
         />
       )}
 
@@ -667,7 +678,7 @@ export default function BdPage() {
       {/* ── Operations KPIs ────────────────────────────────────────────────── */}
       <div>
         <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-2">Operations</div>
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             {
               value: kpiLoading ? '…' : `${Math.round(kpi?.teamHours ?? 0)}h`,
@@ -676,7 +687,7 @@ export default function BdPage() {
               alert: false,
             },
             {
-              value: kpiLoading ? '…' : `${kpi?.reportsFiled ?? 0}/${kpi?.reportsTotal ?? REPORT_MEMBERS.length}`,
+              value: kpiLoading ? '…' : `${kpi?.reportsFiled ?? 0}/${kpi?.reportsTotal ?? teamNames.length}`,
               label: 'Reports Filed',
               sub: (kpi?.reportsMissing?.length ?? 0) > 0
                 ? `Missing: ${kpi!.reportsMissing.map(n => n.split(' ')[0]).join(', ')}`
@@ -696,9 +707,9 @@ export default function BdPage() {
               alert: !kpiLoading && (kpi?.invoicePending ?? 0) > 0,
             },
             {
-              value: kpiLoading ? '…' : `$31K`,
+              value: kpiLoading ? '…' : fmt(kpi?.closedYtd ?? 0),
               label: 'Closed YTD',
-              sub: 'target $5M',
+              sub: 'from paid invoices',
               alert: false,
             },
           ].map(t => (

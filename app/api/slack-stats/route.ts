@@ -2,10 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { buildSlackSnapshot, weekLabel } from '@/lib/slack'
 import { getCachedSWR, recordSuccess, recordFailure, isCircuitOpen } from '@/lib/api-cache'
 import { CACHE_TTL_SYSTEMS_MS } from '@/lib/constants'
-import { TEAM_NAMES } from '@/lib/team'
-
 const EMPTY = {
-  weeklyReports: { filed: [] as string[], missing: TEAM_NAMES, week: weekLabel() },
+  weeklyReports: { filed: [] as string[], missing: [] as string[], week: weekLabel() },
   slackStats: { totalMessages: 0, activeMembers: 0, channels: 0 },
 }
 

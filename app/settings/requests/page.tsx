@@ -28,14 +28,18 @@ export default function RequestsPage() {
   useEffect(() => { load() }, [])
 
   async function approve(req: Request) {
+    if (!confirm(`Approve access for ${req.name} (${req.username_requested ?? 'auto-username'})?`)) return
     const res = await fetch(`/api/settings/requests/${req.id}/approve`, { method: 'POST' })
     const d = await res.json()
     if (res.ok) setMsg(`✅ Approved ${req.name} · username: ${d.username} · temp PW: ${d.tempPassword}`)
+    else setMsg(`❌ Error: ${d.error ?? 'Approve failed'}`)
     load()
   }
 
   async function reject(req: Request) {
-    await fetch(`/api/settings/requests/${req.id}/reject`, { method: 'POST' })
+    if (!confirm(`Reject access request from ${req.name}?`)) return
+    const res = await fetch(`/api/settings/requests/${req.id}/reject`, { method: 'POST' })
+    if (!res.ok) { const d = await res.json(); setMsg(`❌ Error: ${d.error ?? 'Reject failed'}`) }
     load()
   }
 

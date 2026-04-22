@@ -1,18 +1,9 @@
+import { getTeamMembers } from './team-db'
+
 const BASE = 'https://api.webwork-tracker.com/api/v2'
 
 function headers() {
   return { Authorization: `Bearer ${process.env.WEBWORK_API_KEY}` }
-}
-
-// WebWork member IDs mapped to VCOS usernames
-export const MEMBER_IDS: Record<string, number> = {
-  kim:    368177,  // Kimberly Dofredo
-  chase:  239825,  // Chase Angkay
-  alex:   240057,  // Alex Veytsel
-  daniel: 404312,  // Daniel Baez
-  josh:   225823,  // Josh Bykowski
-  rob:    390198,  // Rob Holmes
-  tony:   224775,  // Tony Greenberg
 }
 
 export interface DayHours {
@@ -51,8 +42,14 @@ export async function getWeekHours(userId: number, weekDates: string[]): Promise
 export async function buildWebWorkSnapshot() {
   const weekDates = getCurrentWeekDates()
   const lastWeekDates = getLastWeekDates()
+
+  const teamMembers = await getTeamMembers()
+  const trackable = teamMembers.filter(m => m.webwork_user_id)
+
   const results = await Promise.all(
-    Object.entries(MEMBER_IDS).map(async ([username, userId]) => {
+    trackable.map(async (member) => {
+      const userId = parseInt(member.webwork_user_id!, 10)
+      const username = member.vcos_username ?? member.full_name.split(' ')[0].toLowerCase()
       try {
         const [{ totalMinutes, byDay }, { totalMinutes: lastMinutes }] = await Promise.all([
           getWeekHours(userId, weekDates),

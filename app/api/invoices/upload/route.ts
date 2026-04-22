@@ -19,7 +19,8 @@ async function detectForUser(contractor: string): Promise<string | null> {
   })
   return match?.vcos_username ?? null
 }
-const LIST_ID = process.env.CLICKUP_INVOICE_LIST_ID ?? '901113518927'
+import { CLICKUP_INVOICE_LIST_ID } from '@/lib/constants'
+const LIST_ID = process.env.CLICKUP_INVOICE_LIST_ID ?? CLICKUP_INVOICE_LIST_ID
 
 async function pushToClickUp(inv: {
   id: string

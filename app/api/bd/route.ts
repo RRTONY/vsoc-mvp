@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { DEAL_COLD_DAYS, DEAL_STUCK_DAYS } from '@/lib/constants'
 
 export async function GET(req: NextRequest) {
   const role = req.headers.get('x-role')
@@ -33,11 +34,11 @@ export async function GET(req: NextRequest) {
     if (d.stage === 'Deferred') return false
     if (d.last_contact) {
       const days = (today.getTime() - new Date(d.last_contact).getTime()) / 86400000
-      return days > 14
+      return days > DEAL_COLD_DAYS
     }
     if (d.entered_stage_at) {
       const days = (today.getTime() - new Date(d.entered_stage_at).getTime()) / 86400000
-      return days > 14
+      return days > DEAL_COLD_DAYS
     }
     return false
   }).length
@@ -47,7 +48,7 @@ export async function GET(req: NextRequest) {
     if (d.stage === 'Deferred') return false
     if (!d.entered_stage_at) return false
     const days = (today.getTime() - new Date(d.entered_stage_at).getTime()) / 86400000
-    return days > 21
+    return days > DEAL_STUCK_DAYS
   }).length
 
   return NextResponse.json({

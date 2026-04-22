@@ -31,17 +31,23 @@ export async function POST(req: NextRequest) {
 
   const sb = getSupabase()
   const { data, error } = await sb.from('team_members').insert({
-    full_name:        body.full_name,
-    vcos_username:    body.vcos_username ?? null,
-    slack_aliases:    body.slack_aliases ?? [],
-    clickup_key:      body.clickup_key ?? null,
-    braintrust_name:  body.braintrust_name ?? null,
-    webwork_username: body.webwork_username ?? null,
-    role_description: body.role_description ?? null,
-    hourly_rate:      body.hourly_rate ?? 0,
-    bills_hours:      body.bills_hours ?? true,
-    files_report:     body.files_report ?? true,
-    active:           body.active ?? true,
+    full_name:           body.full_name,
+    vcos_username:       body.vcos_username ?? null,
+    email:               body.email ?? null,
+    slack_aliases:       body.slack_aliases ?? [],
+    slack_user_id:       body.slack_user_id ?? null,
+    clickup_key:         body.clickup_key ?? null,
+    clickup_user_id:     body.clickup_user_id ?? null,
+    braintrust_name:     body.braintrust_name ?? null,
+    webwork_username:    body.webwork_username ?? null,
+    webwork_user_id:     body.webwork_user_id ?? null,
+    webwork_contract_id: body.webwork_contract_id ?? null,
+    fireflies_email:     body.fireflies_email ?? null,
+    role_description:    body.role_description ?? null,
+    hourly_rate:         body.hourly_rate ?? 0,
+    bills_hours:         body.bills_hours ?? true,
+    files_report:        body.files_report ?? true,
+    active:              body.active ?? true,
   }).select().single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

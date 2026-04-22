@@ -5,15 +5,18 @@ import type { Meeting } from '@/lib/types'
 
 const AVATAR_COLORS = ['#4F46E5','#7C3AED','#0891B2','#059669','#D97706','#DC2626']
 
-function initials(name: string) {
-  return name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase()
+function emailInitials(email: string) {
+  const local = email.split('@')[0]
+  const parts = local.split(/[._-]/)
+  return parts.map(p => p[0]).join('').slice(0, 2).toUpperCase()
 }
 
-function avatarColor(name: string) {
+function avatarColor(s: string) {
   let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % AVATAR_COLORS.length
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % AVATAR_COLORS.length
   return AVATAR_COLORS[h]
 }
+
 
 function MeetingItem({ m, isLast }: { m: Meeting; isLast: boolean }) {
   const [open, setOpen] = useState(false)
@@ -44,22 +47,35 @@ function MeetingItem({ m, isLast }: { m: Meeting; isLast: boolean }) {
             <span className="text-ink4 text-xs flex-shrink-0 mt-0.5">{open ? '▲' : '▼'}</span>
           </div>
 
-          {/* Participant avatars */}
+          {/* Participants — named badges for team members, avatars for unmatched */}
           {m.participants.length > 0 && (
-            <div className="flex items-center gap-1 mt-2 flex-wrap">
-              {m.participants.slice(0, 5).map((p, i) => (
-                <div
-                  key={i}
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                  style={{ background: avatarColor(p) }}
-                  title={p}
-                >
-                  {initials(p)}
-                </div>
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              {(m.teamParticipants ?? []).map(name => (
+                <span key={name} className="text-[10px] font-bold bg-accent-light text-accent px-1.5 py-0.5">
+                  {name.split(' ')[0]}
+                </span>
               ))}
-              {m.participants.length > 5 && (
-                <span className="text-[10px] text-ink4">+{m.participants.length - 5}</span>
-              )}
+              {(() => {
+                const matched = new Set(m.matchedEmails ?? [])
+                const unmatched = m.participants.filter(p => !matched.has(p.toLowerCase()))
+                return (
+                  <>
+                    {unmatched.slice(0, 5).map((p, i) => (
+                      <div
+                        key={i}
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
+                        style={{ background: avatarColor(p) }}
+                        title={p}
+                      >
+                        {emailInitials(p)}
+                      </div>
+                    ))}
+                    {unmatched.length > 5 && (
+                      <span className="text-[10px] text-ink4">+{unmatched.length - 5}</span>
+                    )}
+                  </>
+                )
+              })()}
             </div>
           )}
         </button>

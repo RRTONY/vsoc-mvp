@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabase } from '@/lib/supabase'
-import { MEMBER_IDS } from '@/lib/webwork'
+import { getTeamMembers } from '@/lib/team-db'
 
 const BUCKET = 'vcos-screenshots'
 const SIGNED_URL_EXPIRY = 3600 // 1 hour
@@ -16,7 +16,10 @@ export async function GET(req: NextRequest) {
   const date = searchParams.get('date') || new Date().toISOString().slice(0, 10)
 
   const supabase = getSupabase()
-  const members = Object.keys(MEMBER_IDS)
+  const teamMembers = await getTeamMembers()
+  const members = teamMembers
+    .filter(m => m.webwork_user_id)
+    .map(m => m.vcos_username ?? m.full_name.split(' ')[0].toLowerCase())
   const result: Record<string, { url: string; filename: string; capturedAt: string | null }[]> = {}
 
   await Promise.all(

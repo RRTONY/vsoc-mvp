@@ -7,10 +7,16 @@ interface TeamMember {
   id: string
   full_name: string
   vcos_username: string | null
+  email: string | null
   slack_aliases: string[]
+  slack_user_id: string | null
   clickup_key: string | null
+  clickup_user_id: string | null
   braintrust_name: string | null
   webwork_username: string | null
+  webwork_user_id: string | null
+  webwork_contract_id: string | null
+  fireflies_email: string | null
   role_description: string | null
   hourly_rate: number
   bills_hours: boolean
@@ -19,9 +25,11 @@ interface TeamMember {
 }
 
 const EMPTY: Omit<TeamMember, 'id'> = {
-  full_name: '', vcos_username: null, slack_aliases: [], clickup_key: null,
-  braintrust_name: null, webwork_username: null, role_description: null,
-  hourly_rate: 0, bills_hours: true, files_report: true, active: true,
+  full_name: '', vcos_username: null, email: null, slack_aliases: [],
+  slack_user_id: null, clickup_key: null, clickup_user_id: null,
+  braintrust_name: null, webwork_username: null, webwork_user_id: null,
+  webwork_contract_id: null, fireflies_email: null,
+  role_description: null, hourly_rate: 0, bills_hours: true, files_report: true, active: true,
 }
 
 function aliasesFromString(s: string): string[] {
@@ -138,6 +146,30 @@ export default function TeamManagementPage() {
               <div>
                 <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">WebWork Username</label>
                 <input value={form.webwork_username ?? ''} onChange={e => setForm(f => ({ ...f, webwork_username: e.target.value || null }))} className="field-input text-sm" placeholder="e.g. daniel" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">WebWork User ID</label>
+                <input value={form.webwork_user_id ?? ''} onChange={e => setForm(f => ({ ...f, webwork_user_id: e.target.value || null }))} className="field-input text-sm font-mono" placeholder="e.g. 404312" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">WebWork Contract ID</label>
+                <input value={form.webwork_contract_id ?? ''} onChange={e => setForm(f => ({ ...f, webwork_contract_id: e.target.value || null }))} className="field-input text-sm font-mono" placeholder="e.g. 707596" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">Email</label>
+                <input type="email" value={form.email ?? ''} onChange={e => setForm(f => ({ ...f, email: e.target.value || null }))} className="field-input text-sm" placeholder="e.g. daniel@ramprate.com" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">Slack User ID</label>
+                <input value={form.slack_user_id ?? ''} onChange={e => setForm(f => ({ ...f, slack_user_id: e.target.value || null }))} className="field-input text-sm font-mono" placeholder="e.g. U04XYZABC" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">ClickUp User ID</label>
+                <input value={form.clickup_user_id ?? ''} onChange={e => setForm(f => ({ ...f, clickup_user_id: e.target.value || null }))} className="field-input text-sm font-mono" placeholder="e.g. 12345678" />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">Fireflies Email</label>
+                <input type="email" value={form.fireflies_email ?? ''} onChange={e => setForm(f => ({ ...f, fireflies_email: e.target.value || null }))} className="field-input text-sm" placeholder="e.g. daniel@ramprate.com" />
               </div>
             </div>
             <div className="flex flex-wrap gap-4 pt-1">

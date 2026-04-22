@@ -54,6 +54,8 @@ export interface Meeting {
   date: string
   duration: string
   participants: string[]
+  teamParticipants: string[]
+  matchedEmails: string[]
   overview: string
   actionItems: string
   keywords: string[]

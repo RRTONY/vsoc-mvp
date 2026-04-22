@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
-import { hashPassword } from '@/lib/password'
+import { hashPassword, generateTempPassword } from '@/lib/password'
 
 // Seed all users into Supabase vcos_users table
 // POST /api/auth/bootstrap  (admin session required via cookie — run once after deploy)
-const SEED_USERS = [
-  { username: 'tony',     password: 'vcos2026', role: 'owner' },
-  { username: 'ramprate', password: 'vcos2026', role: 'owner' },
-  { username: 'kim',      password: 'vcos2026', role: 'admin' },
-  { username: 'chase',    password: 'vcos2026', role: 'admin' },
-  { username: 'rob',      password: 'vcos2026', role: 'user' },
-  { username: 'alex',     password: 'vcos2026', role: 'user' },
-  { username: 'josh',     password: 'vcos2026', role: 'user' },
-  { username: 'daniel',   password: 'vcos2026', role: 'user' },
-  { username: 'ben',      password: 'vcos2026', role: 'user' },
+// Returns generated temp passwords in the response — save them, they are not stored in plaintext
+const SEED_USERS: { username: string; role: 'owner' | 'admin' | 'user' }[] = [
+  { username: 'tony',     role: 'owner' },
+  { username: 'ramprate', role: 'owner' },
+  { username: 'kim',      role: 'admin' },
+  { username: 'chase',    role: 'admin' },
+  { username: 'rob',      role: 'user' },
+  { username: 'alex',     role: 'user' },
+  { username: 'josh',     role: 'user' },
+  { username: 'daniel',   role: 'user' },
+  { username: 'ben',      role: 'user' },
 ]
 
 export async function POST(req: NextRequest) {
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const results: { username: string; status: string }[] = []
+  const results: { username: string; status: string; tempPassword?: string }[] = []
 
   for (const u of SEED_USERS) {
     const { data: existing } = await supabase
@@ -35,7 +36,8 @@ export async function POST(req: NextRequest) {
       continue
     }
 
-    const password_hash = await hashPassword(u.password)
+    const tempPassword = generateTempPassword()
+    const password_hash = await hashPassword(tempPassword)
     const { error } = await supabase.from('vcos_users').insert({
       username: u.username,
       role: u.role,
@@ -44,7 +46,7 @@ export async function POST(req: NextRequest) {
       approved_by: 'bootstrap',
     })
 
-    results.push({ username: u.username, status: error ? `error: ${error.message}` : 'created' })
+    results.push({ username: u.username, status: error ? `error: ${error.message}` : 'created', tempPassword: error ? undefined : tempPassword })
   }
 
   return NextResponse.json({ results })

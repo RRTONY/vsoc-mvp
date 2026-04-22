@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { hashPassword, generateTempPassword } from '@/lib/password'
+import { SLACK_ADMIN_CHANNEL } from '@/lib/constants'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   if (!['admin', 'owner'].includes(req.headers.get('x-role') ?? '')) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${slackToken}` },
         body: JSON.stringify({
-          channel: 'D000000', // will DM admin — replace with real channel/DM ID if needed
+          channel: process.env.SLACK_ADMIN_CHANNEL ?? SLACK_ADMIN_CHANNEL,
           text: `✅ Access approved for *${req_row.name}*\nUsername: \`${username}\`\nTemp password: \`${tempPassword}\`\nRole: ${role}`,
         }),
       })

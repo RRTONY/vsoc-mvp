@@ -12,6 +12,22 @@ interface CheckState {
   slackReportConfirmed: boolean
 }
 
+const SCORECARD_WEEKS = 11
+
+function getScorecardRange(): { label: string; weeksLabel: string } {
+  const now = new Date()
+  const daysSinceFriday = (now.getDay() + 2) % 7
+  const endFriday = new Date(now)
+  endFriday.setDate(now.getDate() - daysSinceFriday)
+  const startDate = new Date(endFriday)
+  startDate.setDate(endFriday.getDate() - (SCORECARD_WEEKS - 1) * 7)
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  return {
+    label: `${fmt(startDate)} to ${fmt(endFriday)}`,
+    weeksLabel: `${SCORECARD_WEEKS} weeks tracked`,
+  }
+}
+
 const BT_ITEMS: { key: keyof CheckState; label: string }[] = [
   { key: 'invoiceSubmitted',    label: 'Braintrust invoice submitted this period?' },
   { key: 'webworkConfirmed',    label: 'WebWork screenshots cover full work period?' },
@@ -23,24 +39,13 @@ interface Member {
   name: string
   role: string
   rate: number
+  filesReport: boolean
   filed: boolean
   filedWeek1: boolean
   filedWeek2: boolean
   btAlias: string | null   // null = N/A (no Braintrust expected)
   btFiled: boolean
 }
-
-// btAlias: first name or known Braintrust contractor name fragment to match against invoice contractor field
-const BASE_TEAM: Member[] = [
-  { name: 'Rob Holmes',   role: 'BD · Grants',           rate: 91,  filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'rob',       btFiled: false },
-  { name: 'Alex Veytsel', role: 'Equity Partner',         rate: 82,  filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'alex',      btFiled: false },
-  { name: 'Josh Bykowski', role: 'Legal · BD',            rate: 73,  filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'josh',      btFiled: false },
-  { name: 'Kim',          role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'kimberly',  btFiled: false },
-  { name: 'Chase',        role: 'Executive Ops',          rate: 100, filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'chase',     btFiled: false },
-  { name: 'Daniel Baez',  role: 'Webmaster',              rate: 100, filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'daniel',    btFiled: false },
-  { name: 'Ben Sheppard', role: 'ImpactSoul Contractor',  rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, btAlias: 'ben',       btFiled: false },
-  { name: 'Tony',         role: 'CEO',                    rate: 0,   filed: false, filedWeek1: false, filedWeek2: false, btAlias: null,        btFiled: false },
-]
 
 
 export default function CompliancePage() {
@@ -56,14 +61,15 @@ export default function CompliancePage() {
   useEffect(() => {
     fetch('/api/team', { cache: 'no-store' })
       .then(r => r.json())
-      .then((data: Array<{ full_name: string; role_description: string | null; hourly_rate: number; braintrust_name: string | null; active: boolean; files_report: boolean }>) => {
+      .then((data: Array<{ full_name: string; role_description: string | null; hourly_rate: number; braintrust_name: string | null; bills_hours: boolean; active: boolean; files_report: boolean }>) => {
         const active = (data ?? []).filter(m => m.active)
         setTeam(active.map(m => ({
           name: m.full_name,
           role: m.role_description ?? '',
           rate: m.hourly_rate ?? 0,
+          filesReport: m.files_report,
           filed: false, filedWeek1: false, filedWeek2: false,
-          btAlias: m.braintrust_name ?? (m.full_name.split(' ')[0].toLowerCase()),
+          btAlias: m.bills_hours ? (m.braintrust_name ?? m.full_name.split(' ')[0].toLowerCase()) : null,
           btFiled: false,
         })))
       })
@@ -118,16 +124,17 @@ export default function CompliancePage() {
       .catch(() => {})
   }, [refreshKey])
 
-  const missing = team.filter((m) => !m.filed && m.name !== 'Tony')
+  const missing = team.filter((m) => m.filesReport && !m.filed)
+  const { label: scorecardRange, weeksLabel } = getScorecardRange()
 
   return (
     <div>
-      <div className="slbl mt-6">11-Week Compliance Scorecard — Jan 5 to Mar 16, 2026</div>
+      <div className="slbl mt-6">Compliance Scorecard — {scorecardRange}</div>
 
       <div className="card">
         <div className="card-hd">
           <div className="card-ti">Weekly Report Filing Rate</div>
-          <span className="badge">11 weeks tracked</span>
+          <span className="badge">{weeksLabel}</span>
         </div>
         <div className="card-body overflow-x-auto">
           <table className="w-full text-sm border-collapse">

@@ -1,8 +1,9 @@
 // GET /api/invoices — reads directly from Supabase invoices table
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { buildInvoicesSnapshot } from '@/lib/invoices'
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!req.headers.get('x-role')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const snapshot = await buildInvoicesSnapshot()
     return NextResponse.json(snapshot)
