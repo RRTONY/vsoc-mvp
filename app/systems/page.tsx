@@ -15,6 +15,9 @@ interface SystemStatus {
   detail: string
   url?: string
   notes?: string[]
+  manual?: boolean
+  updatedBy?: string
+  updatedAt?: string
 }
 
 const STATIC_SYSTEMS: SystemStatus[] = [
@@ -210,7 +213,8 @@ export default function SystemsPage() {
             const live = (sysData.systems as SystemStatus[]).find(
               (ls) => ls.system.toLowerCase() === s.system.toLowerCase()
             )
-            return live ? { ...s, status: live.status, detail: live.detail } : s
+            if (!live) return s
+            return { ...s, status: live.status, detail: live.detail, manual: live.manual, updatedBy: live.updatedBy, updatedAt: live.updatedAt }
           })
         )
       }
@@ -219,6 +223,23 @@ export default function SystemsPage() {
       setLastChecked(new Date().toLocaleTimeString())
     })
   }, [refreshKey])
+
+  async function handleSystemEdit(systemName: string, newStatus: 'green' | 'amber' | 'red', newDetail: string) {
+    const res = await fetch('/api/systems-status', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ system: systemName, status: newStatus, detail: newDetail }),
+    })
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}))
+      throw new Error(d.error ?? 'Save failed')
+    }
+    setSystems(prev => prev.map(s =>
+      s.system === systemName
+        ? { ...s, status: newStatus, detail: newDetail, updatedBy: 'you', updatedAt: new Date().toISOString() }
+        : s
+    ))
+  }
 
   async function handleRefresh(source: string) {
     setRefreshing(source)
@@ -252,6 +273,10 @@ export default function SystemsPage() {
               status={s.status}
               url={s.url}
               notes={s.notes}
+              manual={s.manual}
+              updatedBy={s.updatedBy}
+              updatedAt={s.updatedAt}
+              onSave={isAdmin && s.manual ? (st, det) => handleSystemEdit(s.system, st, det) : undefined}
             />
           ))}
         </div>
