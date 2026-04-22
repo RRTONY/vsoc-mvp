@@ -129,9 +129,7 @@ export default function InvoicesPage() {
     }
   }
 
-  const visible = isAdmin ? invoices : invoices.filter(inv =>
-    me ? (inv.forUser === me.username || inv.uploadedBy === me.username) : false
-  )
+  const visible = invoices
 
   return (
     <div>
@@ -171,11 +169,6 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {!isAdmin && (
-        <div className="alert alert-blue mb-4 text-xs">
-          Showing your invoices only. Upload your Braintrust PDF to submit an invoice.
-        </div>
-      )}
 
       <div className="card">
         <div className="card-body p-0">
