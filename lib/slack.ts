@@ -51,8 +51,8 @@ export async function conversationsList() {
   })
 }
 
-import { TEAM_NAMES, SLACK_MATCH } from '@/lib/team'
 import { SLACK_CHANNEL_WEEKLY_REPORTS } from '@/lib/constants'
+import { getTeamMembers } from '@/lib/team-db'
 
 function weekLabel() {
   const now = new Date()
@@ -103,14 +103,20 @@ function matchesAlias(text: string, alias: string): boolean {
   return t === a || t.startsWith(a + ' ') || t.endsWith(' ' + a) || t.includes(' ' + a + ' ')
 }
 
-function whoFiled(names: string[], handles: string[]): string[] {
+function whoFiled(
+  names: string[],
+  handles: string[],
+  reportMembers: Array<{ full_name: string; slack_aliases: string[] }>
+): string[] {
   const filed: string[] = []
-  for (const member of TEAM_NAMES) {
-    const aliases = SLACK_MATCH[member] ?? [member.split(' ')[0].toLowerCase()]
+  for (const member of reportMembers) {
+    const aliases = member.slack_aliases.length
+      ? member.slack_aliases
+      : [member.full_name.split(' ')[0].toLowerCase()]
     const didFile =
       names.some(p => aliases.some(a => matchesAlias(p, a))) ||
       handles.some(h => aliases.some(a => matchesAlias(h, a)))
-    if (didFile) filed.push(member)
+    if (didFile) filed.push(member.full_name)
   }
   return filed
 }
@@ -126,11 +132,15 @@ export async function buildSlackSnapshot() {
 
   const oldest = String(Math.floor(week1Start.getTime() / 1000))
 
-  const [historyData, membersData, channelsData] = await Promise.all([
+  const [historyData, membersData, channelsData, teamMembers] = await Promise.all([
     channelHistory(SLACK_CHANNEL_WEEKLY_REPORTS, oldest),
     usersList(),
     conversationsList(),
+    getTeamMembers(),
   ])
+
+  const reportMembers = teamMembers.filter(m => m.files_report)
+  const allMemberNames = teamMembers.map(m => m.full_name)
 
   const allUsers: Array<{ id: string; real_name?: string; name?: string; deleted?: boolean; is_bot?: boolean }> =
     (membersData as { members?: typeof allUsers }).members ?? []
@@ -150,12 +160,11 @@ export async function buildSlackSnapshot() {
   const week1 = getPostersFromMessages(messages, userMap, handleMap, week1Start.getTime(), week2Start.getTime())
   const week2 = getPostersFromMessages(messages, userMap, handleMap, week2Start.getTime(), now.getTime() + 1)
 
-  const filedWeek1 = whoFiled(week1.names, week1.handles)
-  const filedWeek2 = whoFiled(week2.names, week2.handles)
+  const filedWeek1 = whoFiled(week1.names, week1.handles, reportMembers)
+  const filedWeek2 = whoFiled(week2.names, week2.handles, reportMembers)
 
-  // filed = union of both weeks (for backwards compat with exception report)
   const filed = Array.from(new Set([...filedWeek1, ...filedWeek2]))
-  const missing = TEAM_NAMES.filter(m => !filed.includes(m))
+  const missing = allMemberNames.filter(n => reportMembers.some(m => m.full_name === n) && !filed.includes(n))
 
   // Group tagged reports by day (YYYY-MM-DD)
   const dayCounts: Record<string, number> = {}

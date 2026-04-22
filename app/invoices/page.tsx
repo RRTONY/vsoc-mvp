@@ -17,6 +17,7 @@ interface Invoice {
   clickupTaskId: string | null
   clickupUrl: string | null
   uploadedBy: string | null
+  forUser: string | null
 }
 
 const STATUS_STYLE: Record<string, string> = {
@@ -129,7 +130,7 @@ export default function InvoicesPage() {
   }
 
   const visible = isAdmin ? invoices : invoices.filter(inv =>
-    me ? inv.uploadedBy === me.username : false
+    me ? (inv.forUser === me.username || inv.uploadedBy === me.username) : false
   )
 
   return (

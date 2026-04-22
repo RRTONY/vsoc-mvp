@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRefresh } from '@/components/RefreshContext'
 import { ShareSlackButton } from '@/components/ShareButtons'
-import { TEAM, REPORT_MEMBERS } from '@/lib/team'
+import { TEAM } from '@/lib/team'
 import type { Task, ClickUpData, SlackData, WebWorkMember, Meeting } from '@/lib/types'
 import { useMe } from '@/hooks/useMe'
 import StaleBadge from '@/components/StaleBadge'
@@ -273,6 +273,7 @@ function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolea
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<'weekly' | 'submitted' | 'daily' | 'hours'>('weekly')
+  const [reportMembers, setReportMembers] = useState<string[]>([])
   const [slack, setSlack] = useState<SlackData | null>(null)
   const [clickup, setClickUp] = useState<ClickUpData | null>(null)
   const [meetings, setMeetings] = useState<Meeting[]>([])
@@ -291,6 +292,15 @@ export default function ReportsPage() {
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
   const prevKey = useRef(refreshKey)
+
+  useEffect(() => {
+    fetch('/api/team', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: Array<{ full_name: string; files_report: boolean; active: boolean }>) =>
+        setReportMembers((data ?? []).filter(m => m.active && m.files_report).map(m => m.full_name))
+      )
+      .catch(() => {})
+  }, [])
 
   async function fetchAll(signal?: AbortSignal) {
     setLoading(true)
@@ -365,7 +375,7 @@ export default function ReportsPage() {
     `📊 *Weekly Roll-Up Report — Week of ${week}*`,
     ``,
     `*TEAM REPORTS*`,
-    `Filed: ${filed.length}/${REPORT_MEMBERS.length} — ${filed.map(n => n.split(' ')[0]).join(', ') || 'none'}`,
+    `Filed: ${filed.length}/${reportMembers.length} — ${filed.map(n => n.split(' ')[0]).join(', ') || 'none'}`,
     missing.length ? `Missing: ${missing.map(n => n.split(' ')[0]).join(', ')}` : '✅ All filed',
     ``,
     `*CRM HEALTH*`,
@@ -434,11 +444,11 @@ export default function ReportsPage() {
                   <div className="card">
                     <div className="card-hd">
                       <div className="card-ti">This Week — {latestWeek}</div>
-                      <div className="text-xs text-ink3">{latestSubmitters.size} of {REPORT_MEMBERS.length} submitted</div>
+                      <div className="text-xs text-ink3">{latestSubmitters.size} of {reportMembers.length} submitted</div>
                     </div>
                     <div className="card-body p-3">
                       <div className="flex flex-wrap gap-2">
-                        {REPORT_MEMBERS.map(name => {
+                        {reportMembers.map(name => {
                           const filed = latestSubmitters.has(name)
                           return (
                             <button
@@ -470,7 +480,7 @@ export default function ReportsPage() {
                     className="field-input text-xs py-1.5 w-auto"
                   >
                     <option value="">All members</option>
-                    {REPORT_MEMBERS.map(n => <option key={n} value={n}>{n}</option>)}
+                    {reportMembers.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
                   <select
                     value={filterWeek}
@@ -621,7 +631,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
           {
-            value: loading ? '…' : `${filed.length}/${REPORT_MEMBERS.length}`,
+            value: loading ? '…' : `${filed.length}/${reportMembers.length}`,
             label: 'Reports Filed',
             sub: loading ? '' : missing.length ? `Missing: ${missing.map(n => n.split(' ')[0]).join(', ')}` : 'All filed ✓',
             alert: !loading && missing.length > 0,

@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useToast } from '@/components/Toast'
-import { TEAM_NAMES } from '@/lib/team'
 
 interface AiAnalysis {
   summary: string
@@ -65,7 +64,17 @@ export default function SubmitPage() {
   const [submitting, setSubmitting] = useState(false)
   const [analysis, setAnalysis] = useState<AiAnalysis | null>(null)
   const [submittedName, setSubmittedName] = useState('')
+  const [teamNames, setTeamNames] = useState<string[]>([])
   const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    fetch('/api/team', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: Array<{ full_name: string; active: boolean }>) =>
+        setTeamNames((data ?? []).filter(m => m.active).map(m => m.full_name))
+      )
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -174,7 +183,7 @@ export default function SubmitPage() {
             <label className="text-xs font-bold uppercase tracking-widest text-ink3 block mb-1">Your Name <span className="text-red-400">*</span></label>
             <select name="name" className="field-input" required>
               <option value="">— Select —</option>
-              {TEAM_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+              {teamNames.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           </div>
           <div>

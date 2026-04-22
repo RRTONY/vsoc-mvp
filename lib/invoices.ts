@@ -22,6 +22,7 @@ export async function buildInvoicesSnapshot() {
     clickupTaskId: row.clickup_task_id ?? null,
     clickupUrl:    row.clickup_url ?? null,
     uploadedBy:    row.uploaded_by ?? null,
+    forUser:       row.for_user ?? null,
   }))
 
   return { invoices }

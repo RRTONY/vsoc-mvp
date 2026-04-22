@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRefresh } from '@/components/RefreshContext'
 import { ShareSlackButton } from '@/components/ShareButtons'
 import { useMe } from '@/hooks/useMe'
-import { HOURS_MEMBERS } from '@/lib/team'
 
 interface CheckState {
   invoiceSubmitted: boolean
@@ -46,12 +45,30 @@ const BASE_TEAM: Member[] = [
 
 export default function CompliancePage() {
   const { isAdmin, isOwner } = useMe()
-  const [team, setTeam] = useState<Member[]>(BASE_TEAM)
+  const [team, setTeam] = useState<Member[]>([])
   const [week1Label, setWeek1Label] = useState('Week 1')
   const [week2Label, setWeek2Label] = useState('Week 2')
   const [checks, setChecks] = useState<CheckState>({ invoiceSubmitted: false, webworkConfirmed: false, emailMeterConfirmed: false, slackReportConfirmed: false })
   const [hours, setHours] = useState<Record<string, string>>({})
   const { refreshKey } = useRefresh()
+
+  // Load team from DB on mount
+  useEffect(() => {
+    fetch('/api/team', { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: Array<{ full_name: string; role_description: string | null; hourly_rate: number; braintrust_name: string | null; active: boolean; files_report: boolean }>) => {
+        const active = (data ?? []).filter(m => m.active)
+        setTeam(active.map(m => ({
+          name: m.full_name,
+          role: m.role_description ?? '',
+          rate: m.hourly_rate ?? 0,
+          filed: false, filedWeek1: false, filedWeek2: false,
+          btAlias: m.braintrust_name ?? (m.full_name.split(' ')[0].toLowerCase()),
+          btFiled: false,
+        })))
+      })
+      .catch(() => {})
+  }, [])
 
   function totalHours() {
     return Object.values(hours).reduce((sum, v) => sum + (parseFloat(v) || 0), 0)
@@ -187,18 +204,14 @@ export default function CompliancePage() {
         <div className="card-body">
           <div className="alert alert-amber mb-4 text-xs">Hours only. Must match WebWork within 0.5hr tolerance. Do not include rates or dollar amounts.</div>
           <div className="space-y-2">
-            {HOURS_MEMBERS.map((member, i) => (
-              <div key={member} className="flex items-center gap-3">
-                <span className="text-sm font-bold w-32 flex-shrink-0">{member}</span>
+            {team.filter(m => m.rate > 0).map((m) => (
+              <div key={m.name} className="flex items-center gap-3">
+                <span className="text-sm font-bold w-32 flex-shrink-0">{m.name}</span>
                 <input
                   className="field-input w-24 text-right font-mono"
-                  type="number"
-                  min="0"
-                  max="200"
-                  step="0.5"
-                  placeholder="0"
-                  value={hours[member] ?? ''}
-                  onChange={(e) => setHours((h) => ({ ...h, [member]: e.target.value }))}
+                  type="number" min="0" max="200" step="0.5" placeholder="0"
+                  value={hours[m.name] ?? ''}
+                  onChange={(e) => setHours((h) => ({ ...h, [m.name]: e.target.value }))}
                 />
                 <span className="text-xs text-ink3">hrs</span>
               </div>

@@ -1,9 +1,24 @@
 // POST /api/invoices/upload
-// Admin only — parses Braintrust PDF, stores to Supabase, auto-pushes to ClickUp
+// Any logged-in user — parses Braintrust PDF, stores to Supabase, auto-pushes to ClickUp
 import { NextRequest, NextResponse } from 'next/server'
 import { parseBraintrustPdf } from '@/lib/pdf-parser'
 import { COOKIE_NAME, verifySession } from '@/lib/auth'
 import { getSupabase } from '@/lib/supabase'
+import { getTeamMembers } from '@/lib/team-db'
+
+// Match contractor name from PDF (e.g. "Daniel Baez") to a VCOS username via team_members table
+async function detectForUser(contractor: string): Promise<string | null> {
+  const members = await getTeamMembers()
+  const c = contractor.toLowerCase()
+  const match = members.find(m => {
+    // Match braintrust_name field first, then fall back to full_name prefix
+    const bt = (m.braintrust_name ?? '').toLowerCase()
+    const fn = m.full_name.toLowerCase()
+    return (bt && (c === bt || c.includes(bt) || bt.includes(c))) ||
+           c === fn || fn.startsWith(c.split(' ')[0]) || c.startsWith(fn.split(' ')[0])
+  })
+  return match?.vcos_username ?? null
+}
 const LIST_ID = process.env.CLICKUP_INVOICE_LIST_ID ?? '901113518927'
 
 async function pushToClickUp(inv: {
@@ -70,6 +85,13 @@ export async function POST(req: NextRequest) {
     }
 
     const sb = getSupabase()
+
+    // Detect which user each invoice belongs to (for non-admin visibility)
+    const forUserMap: Record<string, string | null> = {}
+    await Promise.all(invoices.map(async (inv) => {
+      forUserMap[inv.contractor] = await detectForUser(inv.contractor)
+    }))
+
     const rows = invoices.map((inv) => ({
       contractor:     inv.contractor,
       invoice_number: inv.invoiceNumber,
@@ -80,6 +102,7 @@ export async function POST(req: NextRequest) {
       status:         inv.status,
       parsed_at:      inv.parsedAt,
       uploaded_by:    session.username,
+      for_user:       forUserMap[inv.contractor] ?? null,
     }))
 
     const { data: inserted, error: dbError } = await sb.from('invoices').insert(rows).select()
@@ -125,6 +148,7 @@ export async function POST(req: NextRequest) {
       clickupTaskId: row.clickup_task_id ?? null,
       clickupUrl:    row.clickup_url ?? null,
       uploadedBy:    row.uploaded_by ?? null,
+      forUser:       row.for_user ?? null,
     }))
 
     return NextResponse.json({

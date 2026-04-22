@@ -17,6 +17,7 @@ const TABS = [
 const ADMIN_TABS = [
   { label: 'BD Pipeline', href: '/bd' },
   { label: 'Users', href: '/settings/users' },
+  { label: 'Team', href: '/settings/team' },
   { label: 'Requests', href: '/settings/requests' },
   { label: 'API Keys', href: '/settings/keys' },
 ]
