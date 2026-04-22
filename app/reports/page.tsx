@@ -490,7 +490,7 @@ export default function ReportsPage() {
                   <select
                     value={filterMember}
                     onChange={e => setFilterMember(e.target.value)}
-                    className="field-input text-xs py-1.5 w-auto"
+                    className="field-input text-xs py-1.5 w-full sm:w-auto"
                   >
                     <option value="">All members</option>
                     {reportMembers.map(n => <option key={n} value={n}>{n}</option>)}
@@ -498,7 +498,7 @@ export default function ReportsPage() {
                   <select
                     value={filterWeek}
                     onChange={e => setFilterWeek(e.target.value)}
-                    className="field-input text-xs py-1.5 w-auto"
+                    className="field-input text-xs py-1.5 w-full sm:w-auto"
                   >
                     <option value="">All weeks</option>
                     {weeks.map(w => <option key={w} value={w}>{w}</option>)}

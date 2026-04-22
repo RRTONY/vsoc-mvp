@@ -199,7 +199,7 @@ export default function TeamManagementPage() {
         <div className="text-sm text-ink4 animate-pulse">Loading…</div>
       ) : (
         <div className="card">
-          <div className="card-body p-0">
+          <div className="card-body p-0 overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
                 <tr className="border-b border-sand3">

@@ -366,10 +366,10 @@ function EditModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-sand w-full max-w-lg max-h-[90vh] overflow-y-auto border border-sand3 shadow-xl">
+      <div className="bg-sand w-full max-w-full sm:max-w-lg max-h-[90vh] overflow-y-auto border border-sand3 shadow-xl">
         <div className="flex items-center justify-between px-4 py-3 border-b border-sand3 sticky top-0 bg-sand">
           <span className="font-bold text-sm">{deal.id ? 'Edit Deal' : 'New Deal'}</span>
-          <button onClick={onClose} className="text-ink4 hover:text-ink text-lg leading-none">✕</button>
+          <button onClick={onClose} className="text-ink4 hover:text-ink text-lg leading-none p-2 -mr-2">✕</button>
         </div>
 
         <div className="p-4 space-y-3">
@@ -726,7 +726,7 @@ export default function BdPage() {
       <div>
         <div className="text-xs font-bold uppercase tracking-widest text-ink3 mb-3">Pipeline</div>
         {dealsLoading ? (
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {STAGES.map(s => (
               <div key={s} className="border border-sand3 p-3 animate-pulse">
                 <div className="text-xs font-bold uppercase tracking-widest text-ink4 mb-2">{s}</div>

@@ -462,7 +462,7 @@ export default function DashboardPage() {
         {isOwner && okrs.length > 0 && (
           <div className="border-t border-sand3 pt-3 pb-2 space-y-2">
             {okrs.map((o) => (
-              <div key={o.id} className="flex items-center gap-2 text-xs">
+              <div key={o.id} className="flex flex-wrap items-center gap-2 text-xs">
                 {editingOkr === o.id ? (
                   <>
                     <span className="w-28 font-semibold text-ink shrink-0 truncate">{o.label}</span>

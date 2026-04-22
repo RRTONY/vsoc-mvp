@@ -232,7 +232,7 @@ export default function InvoicesPage() {
                       </td>
                       {isAdmin && (
                         <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
                             {/* Workflow action buttons */}
                             {inv.status === 'pending' && (
                               <button
