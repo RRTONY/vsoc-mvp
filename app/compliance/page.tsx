@@ -54,7 +54,6 @@ export default function CompliancePage() {
   const [week1Label, setWeek1Label] = useState('Week 1')
   const [week2Label, setWeek2Label] = useState('Week 2')
   const [checks, setChecks] = useState<CheckState>({ invoiceSubmitted: false, webworkConfirmed: false, emailMeterConfirmed: false, slackReportConfirmed: false })
-  const [hours, setHours] = useState<Record<string, string>>({})
   const { refreshKey } = useRefresh()
 
   // Load team from DB on mount
@@ -76,9 +75,7 @@ export default function CompliancePage() {
       .catch(() => {})
   }, [])
 
-  function totalHours() {
-    return Object.values(hours).reduce((sum, v) => sum + (parseFloat(v) || 0), 0)
-  }
+
 
   function toggleCheck(key: keyof CheckState) {
     setChecks((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -199,35 +196,6 @@ export default function CompliancePage() {
               <span className={`text-sm ${checks[item.key] ? 'line-through text-ink4' : ''}`}>{item.label}</span>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className="slbl">Hours Billed This Period</div>
-      <div className="card">
-        <div className="card-hd">
-          <div className="card-ti">Hours Billed This Period</div>
-          <span className="badge">No dollar amounts</span>
-        </div>
-        <div className="card-body">
-          <div className="alert alert-amber mb-4 text-xs">Hours only. Must match WebWork within 0.5hr tolerance. Do not include rates or dollar amounts.</div>
-          <div className="space-y-2">
-            {team.filter(m => m.rate > 0).map((m) => (
-              <div key={m.name} className="flex items-center gap-3">
-                <span className="text-sm font-bold w-32 flex-shrink-0">{m.name}</span>
-                <input
-                  className="field-input w-24 text-right font-mono"
-                  type="number" min="0" max="200" step="0.5" placeholder="0"
-                  value={hours[m.name] ?? ''}
-                  onChange={(e) => setHours((h) => ({ ...h, [m.name]: e.target.value }))}
-                />
-                <span className="text-xs text-ink3">hrs</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between items-center mt-4 pt-4 border-t border-sand3">
-            <span className="text-xs font-bold uppercase tracking-widest text-ink3">Total Hours</span>
-            <span className="font-serif font-black text-2xl">{totalHours().toFixed(1)} hrs</span>
-          </div>
         </div>
       </div>
 

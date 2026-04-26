@@ -129,12 +129,18 @@ export default function InvoicesPage() {
     }
   }
 
-  const visible = invoices
+  const [paidFilter, setPaidFilter] = useState('')   // 'YYYY-MM' or ''
+  const active = invoices.filter(inv => inv.status !== 'paid')
+  const paid   = invoices.filter(inv => inv.status === 'paid')
+  const paidMonths = Array.from(new Set(
+    paid.map(inv => inv.parsedAt?.slice(0, 7)).filter(Boolean)
+  )).sort().reverse()
+  const visiblePaid = paidFilter ? paid.filter(inv => inv.parsedAt?.startsWith(paidFilter)) : paid
 
   return (
     <div>
       <div className="flex items-center justify-between mt-6 mb-1">
-        <div className="slbl mb-0">Braintrust Invoices</div>
+        <div className="slbl mb-0">Pending Invoices</div>
         <div className="flex items-center gap-2">
           {uploadMsg && (
             <span className={`text-xs font-medium ${uploadMsg.startsWith('✓') ? 'text-green-700' : 'text-red-600'}`}>
@@ -170,122 +176,186 @@ export default function InvoicesPage() {
       )}
 
 
+      {/* ── Active invoices ── */}
       <div className="card">
         <div className="card-body p-0">
           {loading ? (
             <div className="p-4 animate-pulse text-sm text-ink4">Loading invoices…</div>
-          ) : visible.length === 0 ? (
-            <div className="p-4 text-sm text-ink4">
-              {isAdmin
-                ? 'No invoices yet. Upload a Braintrust PDF to get started.'
-                : 'No invoices on file for your account yet.'}
-            </div>
+          ) : active.length === 0 ? (
+            <div className="p-4 text-sm text-ink4">No pending invoices. Upload a Braintrust PDF to get started.</div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-sand3">
-                    <th className="text-left py-2 px-4 text-xs font-extrabold uppercase tracking-widest text-ink3">Contractor</th>
-                    <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Invoice</th>
-                    <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Period</th>
-                    <th className="text-right py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Hours</th>
-                    {isOwner && (
-                      <th className="text-right py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Rate</th>
-                    )}
-                    {isAdmin && (
-                      <th className="text-right py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Amount</th>
-                    )}
-                    <th className="text-center py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Status</th>
-                    {isAdmin && (
-                      <th className="text-left py-2 px-3 text-xs font-extrabold uppercase tracking-widest text-ink3">Actions</th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((inv) => (
-                    <tr key={inv.id} className="border-b border-sand3 last:border-0 hover:bg-sand2/50 transition-colors">
-                      <td className="py-2.5 px-4 font-bold">{inv.contractor}</td>
-                      <td className="py-2.5 px-3 font-mono text-xs text-ink3">{inv.invoiceNumber || '—'}</td>
-                      <td className="py-2.5 px-3 text-xs text-ink3">{inv.period || '—'}</td>
-                      <td className="py-2.5 px-3 text-right font-mono text-sm">{inv.hours > 0 ? inv.hours : '—'}</td>
-                      {isOwner && (
-                        <td className="py-2.5 px-3 text-right font-mono text-sm">
-                          {inv.rate > 0 ? `$${inv.rate}/hr` : '—'}
-                        </td>
-                      )}
-                      {isAdmin && (
-                        <td className="py-2.5 px-3 text-right font-mono text-sm font-bold">
-                          {inv.amount > 0 ? `$${inv.amount.toLocaleString()}` : '—'}
-                        </td>
-                      )}
-                      <td className="py-2.5 px-3 text-center">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 uppercase ${STATUS_STYLE[inv.status] ?? STATUS_STYLE.unknown}`}>
-                          {STATUS_LABEL[inv.status] ?? inv.status}
-                        </span>
-                      </td>
-                      {isAdmin && (
-                        <td className="py-2.5 px-3">
-                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-1 sm:gap-2">
-                            {/* Workflow action buttons */}
-                            {inv.status === 'pending' && (
-                              <button
-                                onClick={() => handleStatusChange(inv.id, 'audit_done')}
-                                disabled={actioning === inv.id}
-                                className="text-xs font-semibold border border-blue-400 text-blue-700 px-2 py-0.5 hover:bg-blue-50 transition-colors disabled:opacity-40"
-                              >
-                                {actioning === inv.id ? '…' : 'Audit Done'}
-                              </button>
-                            )}
-                            {inv.status === 'audit_done' && isOwner && (
-                              <button
-                                onClick={() => handleStatusChange(inv.id, 'approved')}
-                                disabled={actioning === inv.id}
-                                className="text-xs font-semibold border border-green-600 text-green-700 px-2 py-0.5 hover:bg-green-50 transition-colors disabled:opacity-40"
-                              >
-                                {actioning === inv.id ? '…' : 'Approve'}
-                              </button>
-                            )}
-                            {inv.status === 'approved' && isOwner && (
-                              <button
-                                onClick={() => handleStatusChange(inv.id, 'paid')}
-                                disabled={actioning === inv.id}
-                                className="text-xs font-semibold border border-ink text-ink px-2 py-0.5 hover:bg-ink hover:text-white transition-colors disabled:opacity-40"
-                              >
-                                {actioning === inv.id ? '…' : 'Mark Paid'}
-                              </button>
-                            )}
-                            {/* ClickUp link or push */}
-                            {inv.clickupTaskId ? (
-                              <a href={inv.clickupUrl ?? '#'} target="_blank" rel="noopener noreferrer"
-                                 className="text-xs text-ink4 hover:text-ink underline">
-                                CU ↗
-                              </a>
-                            ) : (
-                              <button
-                                onClick={() => handleSendToClickUp(inv.id)}
-                                disabled={pushing === inv.id}
-                                className="text-xs text-ink4 border border-sand3 px-1.5 py-0.5 hover:border-ink3 hover:text-ink transition-colors disabled:opacity-40"
-                              >
-                                {pushing === inv.id ? '…' : '+ CU'}
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <InvoiceTable
+              invoices={active}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              actioning={actioning}
+              pushing={pushing}
+              onStatusChange={handleStatusChange}
+              onSendToClickUp={handleSendToClickUp}
+            />
           )}
         </div>
       </div>
 
       {isAdmin && (
-        <div className="text-xs text-ink4 mt-2">
-          Amounts visible to all admins. Rates visible to Tony only.
+        <div className="text-xs text-ink4 mt-1 mb-6">
+          Amounts visible to all admins. Rates visible to owners only.
         </div>
       )}
+
+      {/* ── Past invoices (paid) ── */}
+      <div className="flex items-center justify-between mt-6 mb-1">
+        <div className="slbl mb-0">Past Invoices</div>
+        {paidMonths.length > 1 && (
+          <select
+            value={paidFilter}
+            onChange={e => setPaidFilter(e.target.value)}
+            className="field-input text-xs py-1 w-auto"
+          >
+            <option value="">All time</option>
+            {paidMonths.map(m => (
+              <option key={m} value={m}>
+                {new Date(m + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
+      <div className="card">
+        <div className="card-body p-0">
+          {loading ? (
+            <div className="p-4 animate-pulse text-sm text-ink4">Loading…</div>
+          ) : visiblePaid.length === 0 ? (
+            <div className="p-4 text-sm text-ink4">No paid invoices{paidFilter ? ' for this period' : ' yet'}.</div>
+          ) : (
+            <InvoiceTable
+              invoices={visiblePaid}
+              isAdmin={isAdmin}
+              isOwner={isOwner}
+              actioning={actioning}
+              pushing={pushing}
+              onStatusChange={handleStatusChange}
+              onSendToClickUp={handleSendToClickUp}
+            />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+interface InvoiceTableProps {
+  invoices: Invoice[]
+  isAdmin: boolean
+  isOwner: boolean
+  actioning: string | null
+  pushing: string | null
+  onStatusChange: (id: string, newStatus: string) => void
+  onSendToClickUp: (id: string) => void
+}
+
+function InvoiceTable({ invoices, isAdmin, isOwner, actioning, pushing, onStatusChange, onSendToClickUp }: InvoiceTableProps) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-sand3 text-left text-xs text-ink4 uppercase tracking-wide">
+            <th className="px-4 py-2 font-medium">Contractor</th>
+            <th className="px-4 py-2 font-medium">Invoice</th>
+            <th className="px-4 py-2 font-medium">Period</th>
+            <th className="px-4 py-2 font-medium text-right">Hours</th>
+            {isOwner  && <th className="px-4 py-2 font-medium text-right">Rate</th>}
+            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium text-right">Amount</th>}
+            <th className="px-4 py-2 font-medium">Status</th>
+            <th className="px-4 py-2 font-medium">Uploaded by</th>
+            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium text-center">ClickUp</th>}
+            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium">Action</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {invoices.map(inv => (
+            <tr key={inv.id} className="border-b border-sand2 hover:bg-sand1 transition-colors">
+              <td className="px-4 py-2 font-medium">{inv.contractor}</td>
+              <td className="px-4 py-2 text-ink3">{inv.invoiceNumber}</td>
+              <td className="px-4 py-2 text-ink3">{inv.period}</td>
+              <td className="px-4 py-2 text-right tabular-nums">{inv.hours}</td>
+              {isOwner  && <td className="px-4 py-2 text-right tabular-nums">${inv.rate}/hr</td>}
+              {(isAdmin || isOwner) && (
+                <td className="px-4 py-2 text-right tabular-nums font-medium">
+                  {inv.amount > 0 ? `$${inv.amount.toLocaleString()}` : '—'}
+                </td>
+              )}
+              <td className="px-4 py-2">
+                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[inv.status] ?? STATUS_STYLE.unknown}`}>
+                  {STATUS_LABEL[inv.status] ?? inv.status}
+                </span>
+              </td>
+              <td className="px-4 py-2 text-ink3 text-xs">{inv.uploadedBy ?? '—'}</td>
+
+              {/* ClickUp column */}
+              {(isAdmin || isOwner) && (
+                <td className="px-4 py-2 text-center">
+                  {inv.clickupUrl ? (
+                    <a href={inv.clickupUrl} target="_blank" rel="noopener noreferrer"
+                       className="text-xs text-blue-600 hover:underline whitespace-nowrap">↗ View</a>
+                  ) : (
+                    <button
+                      onClick={() => onSendToClickUp(inv.id)}
+                      disabled={pushing === inv.id}
+                      className="text-xs text-ink4 hover:text-ink1 underline disabled:opacity-40"
+                    >
+                      {pushing === inv.id ? '…' : '+ Add'}
+                    </button>
+                  )}
+                </td>
+              )}
+
+              {/* Workflow action column — single next-step button */}
+              {(isAdmin || isOwner) && (
+                <td className="px-4 py-2 whitespace-nowrap">
+                  {inv.status === 'pending' && (
+                    <button
+                      onClick={() => onStatusChange(inv.id, 'audit_done')}
+                      disabled={actioning === inv.id}
+                      className="btn-secondary text-xs py-0.5 px-2 disabled:opacity-50"
+                    >
+                      {actioning === inv.id ? '…' : 'Audit Done'}
+                    </button>
+                  )}
+                  {inv.status === 'audit_done' && isOwner && (
+                    <button
+                      onClick={() => onStatusChange(inv.id, 'approved')}
+                      disabled={actioning === inv.id}
+                      className="btn-secondary text-xs py-0.5 px-2 disabled:opacity-50"
+                    >
+                      {actioning === inv.id ? '…' : 'Approve'}
+                    </button>
+                  )}
+                  {inv.status === 'approved' && (
+                    <button
+                      onClick={() => onStatusChange(inv.id, 'paid')}
+                      disabled={actioning === inv.id}
+                      className="btn-primary text-xs py-0.5 px-2 disabled:opacity-50"
+                    >
+                      {actioning === inv.id ? '…' : 'Mark Paid'}
+                    </button>
+                  )}
+                  {isOwner && (inv.status === 'pending' || inv.status === 'audit_done') && (
+                    <button
+                      onClick={() => onStatusChange(inv.id, 'paid')}
+                      disabled={actioning === inv.id}
+                      title="Skip workflow and mark as paid"
+                      className="ml-2 text-xs text-ink4 hover:text-ink1 underline disabled:opacity-40"
+                    >
+                      {actioning === inv.id ? '' : 'Mark Paid'}
+                    </button>
+                  )}
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

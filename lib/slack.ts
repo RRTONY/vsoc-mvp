@@ -54,27 +54,25 @@ export async function conversationsList() {
 import { SLACK_CHANNEL_WEEKLY_REPORTS } from '@/lib/constants'
 import { getTeamMembers } from '@/lib/team-db'
 
-function weekLabel() {
-  const now = new Date()
-  // Reporting week = last Friday → most recent Friday (the period reports cover)
-  const thisFri = getMostRecentFriday(now)
-  const lastFri = new Date(thisFri)
-  lastFri.setDate(thisFri.getDate() - 7)
-  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return `${fmt(lastFri)}–${fmt(new Date(thisFri.getTime() - 86400000))}` // last Fri → Thu before this Fri
-}
-
-export { weekLabel }
-
-// Returns most recent Friday (start of current week window)
-function getMostRecentFriday(from: Date): Date {
+// Returns Monday of the current/most-recent Mon–Fri work week
+function getMostRecentMonday(from: Date): Date {
   const d = new Date(from)
-  const jsDay = d.getDay() // Sun=0 Mon=1 ... Sat=6
-  const daysSinceFriday = (jsDay + 2) % 7 // Fri=0 Sat=1 Sun=2 Mon=3 Tue=4 Wed=5 Thu=6
-  d.setDate(d.getDate() - daysSinceFriday)
+  const jsDay = d.getDay() // Sun=0 Mon=1 … Sat=6
+  const daysSinceMonday = (jsDay + 6) % 7 // Mon=0 Tue=1 … Sun=6
+  d.setDate(d.getDate() - daysSinceMonday)
   d.setHours(0, 0, 0, 0)
   return d
 }
+
+function weekLabel() {
+  const monday = getMostRecentMonday(new Date())
+  const friday = new Date(monday)
+  friday.setDate(monday.getDate() + 4)
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${fmt(monday)}–${fmt(friday)}`
+}
+
+export { weekLabel }
 
 function getPostersFromMessages(
   messages: Array<{ user?: string; username?: string; subtype?: string; ts?: string; text?: string }>,
@@ -124,9 +122,8 @@ function whoFiled(
 export async function buildSlackSnapshot() {
   const now = new Date()
 
-  // Week 1 window: Friday two weeks ago → Friday last week
-  // Week 2 window: Friday last week → now
-  const week2Start = getMostRecentFriday(now)
+  // Week 2 window: this Mon → now; Week 1 window: last Mon → this Mon
+  const week2Start = getMostRecentMonday(now)
   const week1Start = new Date(week2Start)
   week1Start.setDate(week2Start.getDate() - 7)
 
@@ -178,10 +175,11 @@ export async function buildSlackSnapshot() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }))
 
-  // Week labels e.g. "Mar 27" and "Apr 3"
   const fmtDate = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  const week1Label = `${fmtDate(week1Start)}–${fmtDate(new Date(week2Start.getTime() - 86400000))}`
-  const week2Label = `${fmtDate(week2Start)}–${fmtDate(now)}`
+  const fri1 = new Date(week1Start); fri1.setDate(week1Start.getDate() + 4)
+  const fri2 = new Date(week2Start); fri2.setDate(week2Start.getDate() + 4)
+  const week1Label = `${fmtDate(week1Start)}–${fmtDate(fri1)}`
+  const week2Label = `${fmtDate(week2Start)}–${fmtDate(fri2)}`
 
   return {
     weeklyReports: { filed, missing, week: weekLabel(), filedWeek1, filedWeek2, week1Label, week2Label },
