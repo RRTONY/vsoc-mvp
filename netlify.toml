@@ -18,7 +18,7 @@
   functions = "netlify/functions"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "20"
   # REQUIRED env vars — set in Netlify UI → Site Settings → Environment Variables:
   #
   #   AUTH_SECRET              = any long random string (signs session cookies)
@@ -38,8 +38,7 @@
   #                              Required scopes: channels:history, channels:read,
   #                              users:read, chat:write
   #   FIREFLIES_API_KEY        = d109cc2...
-  #   ALLOWED_ORIGIN           = https://vsoc.netlify.app/
-  #   NEXT_PUBLIC_URL          = https://vcos-ramprate.netlify.app  (no trailing slash, used by cron-refresh function)
+  #   NEXT_PUBLIC_URL          = https://vcos-ramprate.netlify.app  (no trailing slash, used by all cron functions)
 
 # ── NEXT.JS PLUGIN ─────────────────────────────────────────────
 [[plugins]]

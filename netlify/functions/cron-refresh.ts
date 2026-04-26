@@ -44,6 +44,6 @@ export default async () => {
 }
 
 export const config: Config = {
-  // 15:00 UTC = 8:00 AM PDT (UTC-7). Adjust to 16:00 UTC in winter if needed.
-  schedule: '0 15 * * *',
+  // 14:00 UTC = 7:00 AM PDT (UTC-7). Adjust to 15:00 UTC in winter if needed.
+  schedule: '0 14 * * *',
 }
