@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, getSupabase } from '@/lib/supabase'
 import { hashPassword, generateTempPassword } from '@/lib/password'
+import { invalidateTeamCache } from '@/lib/team-db'
 
 function adminOnly(req: NextRequest) {
   const role = req.headers.get('x-role') ?? ''
@@ -40,5 +41,30 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Auto-create a team_members row so the new user appears in reports immediately.
+  // Skip if one already exists for this username (e.g. re-creating a deleted account).
+  const sb = getSupabase()
+  const { data: existing } = await sb
+    .from('team_members')
+    .select('id')
+    .eq('vcos_username', username.toLowerCase())
+    .maybeSingle()
+
+  if (!existing) {
+    const fullName = username.charAt(0).toUpperCase() + username.slice(1).toLowerCase()
+    await sb.from('team_members').insert({
+      full_name:     fullName,
+      vcos_username: username.toLowerCase(),
+      email:         email ?? null,
+      active:        true,
+      files_report:  true,
+      bills_hours:   false,
+      hourly_rate:   0,
+      slack_aliases: [],
+    })
+    invalidateTeamCache()
+  }
+
   return NextResponse.json({ user: data, tempPassword: plainPassword }, { status: 201 })
 }
