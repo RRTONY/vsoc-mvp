@@ -381,7 +381,7 @@ function EditModal({
           </div>
 
           {/* Stage + Source */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="field-label">Stage</label>
               <select className="field-input" value={form.stage} onChange={e => set('stage', e.target.value)}>
@@ -398,7 +398,7 @@ function EditModal({
           </div>
 
           {/* Contact */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="field-label">Contact Name</label>
               <input className="field-input" value={form.contact_name}
@@ -412,7 +412,7 @@ function EditModal({
           </div>
 
           {/* Revenue */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="field-label">Year 1 Value ($)</label>
               <input className="field-input font-mono" type="number" min={0}
@@ -428,7 +428,7 @@ function EditModal({
           </div>
 
           {/* Owner + Score */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="field-label">Owner</label>
               <select className="field-input" value={form.owner} onChange={e => set('owner', e.target.value)}>

@@ -210,7 +210,7 @@ export default function InvoicesPage() {
           <select
             value={paidFilter}
             onChange={e => setPaidFilter(e.target.value)}
-            className="field-input text-xs py-1 w-auto"
+            className="field-input text-xs py-1 w-full sm:w-auto"
           >
             <option value="">All time</option>
             {paidMonths.map(m => (

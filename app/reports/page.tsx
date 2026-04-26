@@ -743,7 +743,7 @@ export default function ReportsPage() {
       {/* Slack KPIs */}
       {!loading && slackStats && (
         <Section title="Slack Communication KPIs">
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             {[
               { label: 'Messages This Week', value: slackStats.totalMessages.toLocaleString() },
               { label: 'Active Members', value: slackStats.activeMembers },
