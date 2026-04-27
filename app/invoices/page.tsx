@@ -36,8 +36,28 @@ const STATUS_LABEL: Record<string, string> = {
   unknown:    'Unknown',
 }
 
+function toYMD(d: Date) {
+  return d.toISOString().slice(0, 10)
+}
+
+function quickRange(preset: 'this-month' | 'last-month' | 'last-3' | 'ytd'): [string, string] {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth()
+  switch (preset) {
+    case 'this-month':
+      return [toYMD(new Date(y, m, 1)), toYMD(new Date(y, m + 1, 0))]
+    case 'last-month':
+      return [toYMD(new Date(y, m - 1, 1)), toYMD(new Date(y, m, 0))]
+    case 'last-3':
+      return [toYMD(new Date(y, m - 2, 1)), toYMD(new Date(y, m + 1, 0))]
+    case 'ytd':
+      return [toYMD(new Date(y, 0, 1)), toYMD(now)]
+  }
+}
+
 export default function InvoicesPage() {
-  const { me, isAdmin, isOwner } = useMe()
+  const { isAdmin, isOwner } = useMe()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
@@ -48,6 +68,13 @@ export default function InvoicesPage() {
   const [actioning, setActioning] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const { refreshKey } = useRefresh()
+
+  // Past Invoices filters
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo]     = useState('')
+  const [contractorFilter, setContractorFilter] = useState('')
+  // Pending section contractor filter
+  const [pendingContractor, setPendingContractor] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -76,7 +103,6 @@ export default function InvoicesPage() {
         const warnings: string[] = d.clickupWarnings ?? []
         setUploadMsg(`✓ Imported ${d.count} invoice${d.count !== 1 ? 's' : ''}${warnings.length > 0 ? ' — ClickUp sync failed' : ' and sent to ClickUp'}`)
         setUploadWarnings(warnings)
-        // Prepend newly imported invoices to the list directly — no second fetch needed
         setInvoices((prev) => [...(d.invoices ?? []), ...prev])
       } else {
         setUploadMsg(`Error: ${d.error}`)
@@ -129,16 +155,49 @@ export default function InvoicesPage() {
     }
   }
 
-  const [paidFilter, setPaidFilter] = useState('')   // 'YYYY-MM' or ''
+  function applyQuick(preset: 'this-month' | 'last-month' | 'last-3' | 'ytd') {
+    const [f, t] = quickRange(preset)
+    setDateFrom(f)
+    setDateTo(t)
+  }
+
+  function clearPastFilters() {
+    setDateFrom('')
+    setDateTo('')
+    setContractorFilter('')
+  }
+
+  // Split invoices
   const active = invoices.filter(inv => inv.status !== 'paid')
   const paid   = invoices.filter(inv => inv.status === 'paid')
-  const paidMonths = Array.from(new Set(
-    paid.map(inv => inv.parsedAt?.slice(0, 7)).filter(Boolean)
-  )).sort().reverse()
-  const visiblePaid = paidFilter ? paid.filter(inv => inv.parsedAt?.startsWith(paidFilter)) : paid
+
+  // Unique contractors for filters
+  const activeContractors = Array.from(new Set(active.map(inv => inv.contractor))).sort()
+  const paidContractors   = Array.from(new Set(paid.map(inv => inv.contractor))).sort()
+
+  // Apply past filters
+  const visiblePaid = paid.filter(inv => {
+    const d = inv.parsedAt?.slice(0, 10) ?? ''
+    if (dateFrom && d < dateFrom) return false
+    if (dateTo   && d > dateTo)   return false
+    if (contractorFilter && inv.contractor !== contractorFilter) return false
+    return true
+  })
+
+  // Apply pending contractor filter
+  const visibleActive = pendingContractor
+    ? active.filter(inv => inv.contractor === pendingContractor)
+    : active
+
+  // Totals for the filtered past invoices (for scrutiny)
+  const totalHours  = visiblePaid.reduce((s, inv) => s + (inv.hours  ?? 0), 0)
+  const totalAmount = visiblePaid.reduce((s, inv) => s + (inv.amount ?? 0), 0)
+
+  const hasFilter = dateFrom || dateTo || contractorFilter
 
   return (
     <div>
+      {/* ── Header + upload ── */}
       <div className="flex items-center justify-between mt-6 mb-1">
         <div className="slbl mb-0">Pending Invoices</div>
         <div className="flex items-center gap-2">
@@ -175,17 +234,37 @@ export default function InvoicesPage() {
         </div>
       )}
 
+      {/* Pending contractor filter */}
+      {activeContractors.length > 1 && (
+        <div className="flex items-center gap-2 mb-2">
+          <select
+            value={pendingContractor}
+            onChange={e => setPendingContractor(e.target.value)}
+            className="field-input text-xs py-1 w-full sm:w-auto"
+          >
+            <option value="">All contractors</option>
+            {activeContractors.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+          {pendingContractor && (
+            <button onClick={() => setPendingContractor('')} className="text-xs text-ink4 hover:text-ink1 underline">
+              Clear
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Active invoices ── */}
       <div className="card">
         <div className="card-body p-0">
           {loading ? (
             <div className="p-4 animate-pulse text-sm text-ink4">Loading invoices…</div>
-          ) : active.length === 0 ? (
-            <div className="p-4 text-sm text-ink4">No pending invoices. Upload a Braintrust PDF to get started.</div>
+          ) : visibleActive.length === 0 ? (
+            <div className="p-4 text-sm text-ink4">
+              {pendingContractor ? `No pending invoices for ${pendingContractor}.` : 'No pending invoices. Upload a Braintrust PDF to get started.'}
+            </div>
           ) : (
             <InvoiceTable
-              invoices={active}
+              invoices={visibleActive}
               isAdmin={isAdmin}
               isOwner={isOwner}
               actioning={actioning}
@@ -198,45 +277,137 @@ export default function InvoicesPage() {
       </div>
 
       {isAdmin && (
-        <div className="text-xs text-ink4 mt-1 mb-6">
+        <div className="text-xs text-ink4 mt-1 mb-2">
           Amounts visible to all admins. Rates visible to owners only.
         </div>
       )}
 
-      {/* ── Past invoices (paid) ── */}
-      <div className="flex items-center justify-between mt-6 mb-1">
-        <div className="slbl mb-0">Past Invoices</div>
-        {paidMonths.length > 1 && (
-          <select
-            value={paidFilter}
-            onChange={e => setPaidFilter(e.target.value)}
-            className="field-input text-xs py-1 w-full sm:w-auto"
-          >
-            <option value="">All time</option>
-            {paidMonths.map(m => (
-              <option key={m} value={m}>
-                {new Date(m + '-02').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </option>
-            ))}
-          </select>
-        )}
+      {/* ── Past Invoices header + filters ── */}
+      <div className="mt-6 mb-2">
+        <div className="flex items-center justify-between mb-2">
+          <div className="slbl mb-0">Past Invoices</div>
+          {hasFilter && (
+            <button onClick={clearPastFilters} className="text-xs text-ink4 hover:text-ink1 underline">
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {/* Filter controls */}
+        <div className="card px-4 py-3">
+          <div className="flex flex-wrap gap-3 items-end">
+
+            {/* Quick-select presets */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-widest text-ink4 font-semibold">Quick select</span>
+              <div className="flex flex-wrap gap-1">
+                {([
+                  ['this-month', 'This Month'],
+                  ['last-month', 'Last Month'],
+                  ['last-3',     'Last 3 Months'],
+                  ['ytd',        'Year to Date'],
+                ] as const).map(([preset, label]) => (
+                  <button
+                    key={preset}
+                    onClick={() => applyQuick(preset)}
+                    className="text-xs px-2 py-0.5 border border-sand3 hover:border-ink3 hover:text-ink rounded transition-colors"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Date range */}
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] uppercase tracking-widest text-ink4 font-semibold">Date range</span>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={e => setDateFrom(e.target.value)}
+                  className="field-input text-xs py-1 w-36"
+                />
+                <span className="text-ink4 text-xs">to</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={e => setDateTo(e.target.value)}
+                  className="field-input text-xs py-1 w-36"
+                />
+              </div>
+            </div>
+
+            {/* Contractor filter */}
+            {paidContractors.length > 1 && (
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] uppercase tracking-widest text-ink4 font-semibold">Contractor</span>
+                <select
+                  value={contractorFilter}
+                  onChange={e => setContractorFilter(e.target.value)}
+                  className="field-input text-xs py-1 w-full sm:w-auto"
+                >
+                  <option value="">All contractors</option>
+                  {paidContractors.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Active filter summary */}
+          {hasFilter && (
+            <div className="mt-2 pt-2 border-t border-sand2 flex flex-wrap gap-4 text-xs text-ink3">
+              {(dateFrom || dateTo) && (
+                <span>
+                  Period: <span className="font-semibold text-ink">
+                    {dateFrom || '—'} → {dateTo || 'now'}
+                  </span>
+                </span>
+              )}
+              {contractorFilter && (
+                <span>Contractor: <span className="font-semibold text-ink">{contractorFilter}</span></span>
+              )}
+              <span className="text-ink4">{visiblePaid.length} invoice{visiblePaid.length !== 1 ? 's' : ''}</span>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* ── Past invoices table ── */}
       <div className="card">
         <div className="card-body p-0">
           {loading ? (
             <div className="p-4 animate-pulse text-sm text-ink4">Loading…</div>
           ) : visiblePaid.length === 0 ? (
-            <div className="p-4 text-sm text-ink4">No paid invoices{paidFilter ? ' for this period' : ' yet'}.</div>
+            <div className="p-4 text-sm text-ink4">
+              {hasFilter ? 'No paid invoices match the selected filters.' : 'No paid invoices yet.'}
+            </div>
           ) : (
-            <InvoiceTable
-              invoices={visiblePaid}
-              isAdmin={isAdmin}
-              isOwner={isOwner}
-              actioning={actioning}
-              pushing={pushing}
-              onStatusChange={handleStatusChange}
-              onSendToClickUp={handleSendToClickUp}
-            />
+            <>
+              <InvoiceTable
+                invoices={visiblePaid}
+                isAdmin={isAdmin}
+                isOwner={isOwner}
+                actioning={actioning}
+                pushing={pushing}
+                onStatusChange={handleStatusChange}
+                onSendToClickUp={handleSendToClickUp}
+              />
+              {/* Totals row */}
+              <div className="border-t border-sand3 px-4 py-3 flex flex-wrap gap-6 items-center bg-sand1">
+                <span className="text-xs font-bold uppercase tracking-widest text-ink3">
+                  Totals — {visiblePaid.length} invoice{visiblePaid.length !== 1 ? 's' : ''}
+                </span>
+                <span className="text-sm font-semibold tabular-nums">
+                  {totalHours.toFixed(1)} hrs
+                </span>
+                {(isAdmin || isOwner) && totalAmount > 0 && (
+                  <span className="text-sm font-semibold tabular-nums">
+                    ${totalAmount.toLocaleString()} total
+                  </span>
+                )}
+              </div>
+            </>
           )}
         </div>
       </div>
@@ -310,7 +481,7 @@ function InvoiceTable({ invoices, isAdmin, isOwner, actioning, pushing, onStatus
                 </td>
               )}
 
-              {/* Workflow action column — single next-step button */}
+              {/* Workflow action column */}
               {(isAdmin || isOwner) && (
                 <td className="px-4 py-2 whitespace-nowrap">
                   {inv.status === 'pending' && (
