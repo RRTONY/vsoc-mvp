@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   if (!['admin', 'owner'].includes(req.headers.get('x-role') ?? '')) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 import { hashPassword, generateTempPassword } from '@/lib/password'
 
+export const dynamic = 'force-dynamic'
+
 // Seed all users into Supabase vcos_users table
 // POST /api/auth/bootstrap  (admin session required via cookie — run once after deploy)
 // Returns generated temp passwords in the response — save them, they are not stored in plaintext

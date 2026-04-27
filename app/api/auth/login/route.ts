@@ -3,6 +3,8 @@ import { createSession, COOKIE_NAME } from '@/lib/auth'
 import { supabase } from '@/lib/supabase'
 import { verifyPassword } from '@/lib/password'
 
+export const dynamic = 'force-dynamic'
+
 const IS_PROD = process.env.NODE_ENV === 'production'
 const DAYS_30 = 30 * 24 * 60 * 60 // seconds
 

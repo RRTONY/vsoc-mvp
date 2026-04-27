@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
 
+export const dynamic = 'force-dynamic'
+
 // GET /api/bd/activity?deal_id=xxx
 export async function GET(req: NextRequest) {
   const role = req.headers.get('x-role')
