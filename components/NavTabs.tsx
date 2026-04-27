@@ -10,12 +10,12 @@ const TABS = [
   { label: 'Submit Report', href: '/submit' },
   { label: 'Compliance', href: '/compliance' },
   { label: 'Invoices', href: '/invoices' },
+  { label: 'BD Pipeline', href: '/bd' },
   { label: 'Systems', href: '/systems' },
   { label: 'Open Loops', href: '/openloops' },
 ]
 
 const ADMIN_TABS = [
-  { label: 'BD Pipeline', href: '/bd' },
   { label: 'Users', href: '/settings/users' },
   { label: 'Team', href: '/settings/team' },
   { label: 'Requests', href: '/settings/requests' },
