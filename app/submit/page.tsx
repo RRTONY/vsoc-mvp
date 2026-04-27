@@ -12,49 +12,100 @@ interface AiAnalysis {
 function getCurrentWeekLabel(): string {
   const now = new Date()
   const jsDay = now.getDay()
-  const daysSinceFriday = (jsDay + 2) % 7
-  const thisFri = new Date(now)
-  thisFri.setDate(now.getDate() - daysSinceFriday)
-  thisFri.setHours(0, 0, 0, 0)
-  const lastFri = new Date(thisFri)
-  lastFri.setDate(thisFri.getDate() - 7)
+  const daysSinceMonday = (jsDay + 6) % 7
+  const mon = new Date(now)
+  mon.setDate(now.getDate() - daysSinceMonday)
+  mon.setHours(0, 0, 0, 0)
+  const fri = new Date(mon)
+  fri.setDate(mon.getDate() + 4)
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return `${fmt(lastFri)}–${fmt(new Date(thisFri.getTime() - 86400000))}`
+  return `${fmt(mon)}–${fmt(fri)}`
 }
 
 const SECTIONS = [
   {
+    title: 'Flags & Blockers',
+    fields: [
+      {
+        name: 'blockers',
+        label: '1. What is blocked, stuck, or at risk right now?',
+        rows: 4,
+        placeholder: 'List each blocker separately.\nFormat: Blocker → Impact if unresolved → What\'s needed → From whom',
+      },
+      {
+        name: 'escalations',
+        label: '2. Is anything broken, behind, or needs to be escalated?',
+        rows: 3,
+        placeholder: 'Client issues, missed commitments, process failures, team conflicts.\nFormat: Issue → Current status → Recommended action',
+      },
+    ],
+  },
+  {
+    title: 'Next Week',
+    fields: [
+      {
+        name: 'priorities',
+        label: '3. What are your top 3–5 priorities for next week, in order?',
+        rows: 5,
+        placeholder: 'Include what "done" looks like for each.\nFormat: Priority → Definition of done → Owner if team\n1.\n2.\n3.',
+      },
+    ],
+  },
+  {
     title: 'Last Week in Review',
     fields: [
-      { name: 'outcomes', label: '1. What business outcomes did you drive this week?', rows: 4, placeholder: 'Deals advanced, deliverables shipped, revenue driven...' },
-      { name: 'goals_met', label: '2. Did you accomplish your top goals from last week? If not, why not?', rows: 3, placeholder: 'Yes / Partially / No — with explanation...' },
-      { name: 'deliverables', label: '3. Deliverables Authored or Significantly Edited', rows: 3, placeholder: 'Documents, decks, proposals, reports...' },
-      { name: 'automations', label: '4. Automations Built or Improved', rows: 2, placeholder: 'New workflows, scripts, integrations built or updated...' },
-      { name: 'processes', label: '5. Processes Executed', rows: 2, placeholder: 'Recurring processes run this week...' },
-      { name: 'automation_roi', label: '6. Automation ROI This Week', rows: 2, placeholder: 'Time saved, errors prevented, revenue generated...' },
+      {
+        name: 'goals_met',
+        label: '4. Which of last week\'s priorities did you complete — and what didn\'t get done, and why?',
+        rows: 4,
+        placeholder: 'Format: Priority → Done / Not done → Reason if not done',
+      },
+      {
+        name: 'win',
+        label: '5. What\'s the most important thing you accomplished this week, and what was the business impact?',
+        rows: 3,
+        placeholder: 'One key win and its business significance...',
+      },
+      {
+        name: 'accomplishments',
+        label: '6. Full list of accomplishments by area',
+        rows: 6,
+        placeholder: 'Sales:\nClient delivery:\nInternal operations:\nOther:',
+      },
     ],
   },
   {
-    title: 'Relationships & Intelligence',
+    title: 'Reflection',
     fields: [
-      { name: 'deals_relationships', label: '7. Key Deals & Relationships Nurtured', rows: 3, placeholder: 'Prospects, clients, partners — names and context...' },
-      { name: 'interesting', label: '9. Most Interesting Thing You Heard / Read This Week', rows: 2, placeholder: 'An insight, article, conversation, or idea worth sharing...' },
+      {
+        name: 'friction',
+        label: '7. What didn\'t go well — and what should change because of it?',
+        rows: 3,
+        placeholder: 'Be specific about the root cause and proposed fix...',
+      },
+      {
+        name: 'went_well',
+        label: '8. What went well that\'s worth repeating or recognizing?',
+        rows: 3,
+        placeholder: 'A process, decision, collaboration, or outcome worth doubling down on...',
+      },
     ],
   },
   {
-    title: 'Looking Ahead',
+    title: 'Support & Personal',
     fields: [
-      { name: 'priorities', label: '10. Top 3–5 Priorities for Next Week', rows: 4, placeholder: '1.\n2.\n3.' },
-      { name: 'blockers', label: '8. Help Needed / Dependencies / Blockers', rows: 3, placeholder: 'What do you need from Tony, Alex, or the team?' },
-    ],
-  },
-  {
-    title: 'Wins & Reflection',
-    fields: [
-      { name: 'win', label: '11. Win of the Week', rows: 2, placeholder: 'Your proudest moment or result this week...' },
-      { name: 'kudos', label: '12. Kudos (Optional)', rows: 2, placeholder: 'Shout out a teammate who helped you...' },
-      { name: 'friction', label: '13. Friction (Optional)', rows: 2, placeholder: 'What slowed you down? Process, tool, or situation...' },
-      { name: 'whats_new', label: "14. What's New With You? (Optional)", rows: 2, placeholder: 'Personal update, milestone, or fun fact...' },
+      {
+        name: 'support_needed',
+        label: '9. What you need from others to support you',
+        rows: 3,
+        placeholder: 'Decisions, introductions, resources, unblocking — and from whom...',
+      },
+      {
+        name: 'whats_new',
+        label: '10. Personal notes (Optional) — interesting reads, personal milestones, family life',
+        rows: 2,
+        placeholder: 'Anything you\'d like to share...',
+      },
     ],
   },
 ]

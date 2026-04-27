@@ -9,19 +9,15 @@ const SLACK_CHANNEL = process.env.SLACK_CHANNEL_WEEKLY_REPORTS ?? SLACK_CHANNEL_
 interface ReportBody {
   name: string
   week: string
-  outcomes?: string
-  goals_met?: string
-  deliverables?: string
-  automations?: string
-  processes?: string
-  automation_roi?: string
-  deals_relationships?: string
   blockers?: string
-  interesting?: string
+  escalations?: string
   priorities?: string
+  goals_met?: string
   win?: string
-  kudos?: string
+  accomplishments?: string
   friction?: string
+  went_well?: string
+  support_needed?: string
   whats_new?: string
 }
 
@@ -40,17 +36,15 @@ async function analyzeReport(report: ReportBody): Promise<AiAnalysis | null> {
   const prompt = `You are analyzing a weekly report from ${report.name} for the week of ${report.week}. Provide a concise executive analysis.
 
 Report:
-1. Business Outcomes: ${report.outcomes || '—'}
-2. Goals from Last Week: ${report.goals_met || '—'}
-3. Deliverables: ${report.deliverables || '—'}
-4. Automations Built: ${report.automations || '—'}
-5. Processes Executed: ${report.processes || '—'}
-6. Automation ROI: ${report.automation_roi || '—'}
-7. Deals & Relationships: ${report.deals_relationships || '—'}
-8. Blockers: ${report.blockers || '—'}
-9. Interesting Insight: ${report.interesting || '—'}
-10. Priorities Next Week: ${report.priorities || '—'}
-11. Win of the Week: ${report.win || '—'}
+1. Blocked/stuck/at risk: ${report.blockers || '—'}
+2. Escalations needed: ${report.escalations || '—'}
+3. Next week priorities: ${report.priorities || '—'}
+4. Last week priorities — done vs. not done: ${report.goals_met || '—'}
+5. Most important accomplishment & business impact: ${report.win || '—'}
+6. Full accomplishments by area: ${report.accomplishments || '—'}
+7. What didn't go well: ${report.friction || '—'}
+8. What went well: ${report.went_well || '—'}
+9. Support needed from others: ${report.support_needed || '—'}
 
 Respond with valid JSON only:
 {
@@ -92,31 +86,25 @@ export async function POST(req: NextRequest) {
     '',
     `*Weekly Report — ${name} — ${week}*`,
     '',
-    `1. What business outcomes did you drive this week?\n${body.outcomes || '—'}`,
+    `*1. What is blocked, stuck, or at risk right now?*\n${body.blockers || '—'}`,
     '',
-    `2. Did you accomplish your top goals from last week? If not, why not?\n${body.goals_met || '—'}`,
+    `*2. Is anything broken, behind, or needs to be escalated?*\n${body.escalations || '—'}`,
     '',
-    `3. Deliverables Authored or Significantly Edited\n${body.deliverables || '—'}`,
+    `*3. Top 3–5 priorities for next week*\n${body.priorities || '—'}`,
     '',
-    `4. Automations built or improved\n${body.automations || '—'}`,
+    `*4. Last week's priorities — done vs. not done*\n${body.goals_met || '—'}`,
     '',
-    `5. Processes Executed\n${body.processes || '—'}`,
+    `*5. Most important accomplishment & business impact*\n${body.win || '—'}`,
     '',
-    `6. Automation ROI this week\n${body.automation_roi || '—'}`,
+    `*6. Full accomplishments by area*\n${body.accomplishments || '—'}`,
     '',
-    `7. Key deals & relationships nurtured\n${body.deals_relationships || '—'}`,
+    `*7. What didn't go well — and what should change?*\n${body.friction || '—'}`,
     '',
-    `8. Help Needed / Dependencies / Blockers\n${body.blockers || '—'}`,
+    `*8. What went well that's worth repeating or recognizing?*\n${body.went_well || '—'}`,
     '',
-    `9. Most Interesting Thing You Heard / Read This Week\n${body.interesting || '—'}`,
-    '',
-    `10. Top 3-5 Priorities for Next Week\n${body.priorities || '—'}`,
-    '',
-    `11. Win of the Week\n${body.win || '—'}`,
+    `*9. What you need from others*\n${body.support_needed || '—'}`,
   ]
-  if (body.kudos) lines.push('', `12. Kudos\n${body.kudos}`)
-  if (body.friction) lines.push('', `13. Friction\n${body.friction}`)
-  if (body.whats_new) lines.push('', `14. What\'s new with you?\n${body.whats_new}`)
+  if (body.whats_new) lines.push('', `*10. Personal notes*\n${body.whats_new}`)
 
   const slackMsg = lines.join('\n')
 
@@ -134,19 +122,15 @@ export async function POST(req: NextRequest) {
   const { data, error } = await sb.from('weekly_reports').insert({
     submitted_by: name,
     week_label: week,
-    outcomes: body.outcomes ?? null,
-    goals_met: body.goals_met ?? null,
-    deliverables: body.deliverables ?? null,
-    automations: body.automations ?? null,
-    processes: body.processes ?? null,
-    automation_roi: body.automation_roi ?? null,
-    deals_relationships: body.deals_relationships ?? null,
     blockers: body.blockers ?? null,
-    interesting: body.interesting ?? null,
+    escalations: body.escalations ?? null,
     priorities: body.priorities ?? null,
+    goals_met: body.goals_met ?? null,
     win: body.win ?? null,
-    kudos: body.kudos ?? null,
+    accomplishments: body.accomplishments ?? null,
     friction: body.friction ?? null,
+    went_well: body.went_well ?? null,
+    support_needed: body.support_needed ?? null,
     whats_new: body.whats_new ?? null,
     ai_analysis: aiAnalysis,
     slack_ts: slackTs,
@@ -166,7 +150,7 @@ export async function GET(req: NextRequest) {
   const sb = getSupabase()
   const { data } = await sb
     .from('weekly_reports')
-    .select('id, submitted_by, week_label, outcomes, goals_met, deliverables, deals_relationships, interesting, priorities, blockers, win, kudos, ai_analysis, created_at')
+    .select('id, submitted_by, week_label, blockers, escalations, priorities, goals_met, win, accomplishments, friction, went_well, support_needed, whats_new, ai_analysis, created_at')
     .order('created_at', { ascending: false })
     .limit(100)
 
