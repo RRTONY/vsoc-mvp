@@ -441,27 +441,29 @@ export default function ReportsPage() {
   return (
     <div>
       {/* Tab bar */}
-      <div className="flex gap-0 border-b border-sand3 mt-6 mb-4">
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`px-4 py-2 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
-              tab === t.id ? 'border-ink text-ink' : 'border-transparent text-ink4 hover:text-ink3'
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-        {isAdmin && tab === 'daily' && (
-          <button
-            onClick={generateNow}
-            disabled={generatingReport}
-            className="ml-auto btn-primary text-xs py-1 px-3 mb-1"
-          >
-            {generatingReport ? 'Generating…' : 'Generate Now'}
-          </button>
-        )}
+      <div className="overflow-x-auto -mx-4 sm:mx-0 mt-6 mb-4">
+        <div className="flex gap-0 border-b border-sand3 min-w-max px-4 sm:px-0">
+          {TABS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2.5 text-xs font-bold uppercase tracking-widest border-b-2 transition-colors whitespace-nowrap ${
+                tab === t.id ? 'border-ink text-ink' : 'border-transparent text-ink4 hover:text-ink3'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+          {isAdmin && tab === 'daily' && (
+            <button
+              onClick={generateNow}
+              disabled={generatingReport}
+              className="ml-auto btn-primary text-xs py-1 px-3 mb-1 self-center"
+            >
+              {generatingReport ? 'Generating…' : 'Generate Now'}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── SUBMITTED REPORTS TAB ───────────────────────────── */}
@@ -490,28 +492,28 @@ export default function ReportsPage() {
         return (
           <div className="space-y-4">
             {/* Week navigation */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-x-1 gap-y-2">
               <button
                 onClick={() => setWeekMon(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })}
-                className="text-ink4 hover:text-ink text-lg px-2 leading-none font-light"
+                className="text-ink4 hover:text-ink text-xl w-8 h-8 flex items-center justify-center rounded hover:bg-sand3 transition-colors"
                 title="Previous week"
               >‹</button>
               <span className="text-sm font-semibold tabular-nums">{fmtWeekLabel(weekMon)}</span>
               <button
                 onClick={() => setWeekMon(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })}
                 disabled={isCurrentWeek}
-                className="text-ink4 hover:text-ink text-lg px-2 leading-none font-light disabled:opacity-30"
+                className="text-ink4 hover:text-ink text-xl w-8 h-8 flex items-center justify-center rounded hover:bg-sand3 transition-colors disabled:opacity-30"
                 title="Next week"
               >›</button>
               {!isCurrentWeek && (
                 <button
                   onClick={() => setWeekMon(getMostRecentMonday(new Date()))}
-                  className="text-xs text-accent hover:underline ml-1"
+                  className="text-xs text-accent hover:underline"
                 >
                   Current week
                 </button>
               )}
-              <div className="ml-auto flex gap-3 text-xs text-ink4">
+              <div className="flex gap-3 text-xs text-ink4 ml-auto">
                 {onTimeCount > 0 && <span className="text-green-700 font-semibold">{onTimeCount} on time</span>}
                 {lateCount > 0   && <span className="text-amber-600 font-semibold">{lateCount} late</span>}
                 {missingCount > 0 && <span className="text-red-600 font-semibold">{missingCount} missing</span>}
@@ -684,8 +686,8 @@ export default function ReportsPage() {
                       {m.username[0].toUpperCase()}
                     </div>
                     <span className="text-sm font-semibold capitalize flex-1">{m.username}</span>
-                    <div className="flex items-center gap-3">
-                      <div className="w-28 h-2 bg-sand3 rounded-full overflow-hidden">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="w-20 sm:w-28 h-2 bg-sand3 rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full"
                           style={{
@@ -746,7 +748,7 @@ export default function ReportsPage() {
           },
         ].map((s) => (
           <div key={s.label} className={`border p-3 ${s.alert ? 'border-red-300 bg-red-50' : 'border-sand3'} ${loading ? 'animate-pulse' : ''}`}>
-            <div className="font-serif font-black text-3xl">{s.value}</div>
+            <div className="font-serif font-black text-2xl sm:text-3xl">{s.value}</div>
             <div className="text-xs font-bold uppercase tracking-widest text-ink3 mt-0.5">{s.label}</div>
             {s.sub && <div className="text-xs text-ink4 mt-0.5">{s.sub}</div>}
           </div>

@@ -378,23 +378,23 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mt-6 mb-4">
         <div>
           <h1 className="font-display text-2xl tracking-widest">CEO COMMAND</h1>
-          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <button
               onClick={() => setSelectedMonday(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })}
-              className="text-ink4 hover:text-ink text-sm px-1 leading-none"
+              className="text-ink4 hover:text-ink text-lg w-7 h-7 flex items-center justify-center rounded hover:bg-sand3 transition-colors"
               title="Previous week"
             >‹</button>
-            <span className="text-xs text-ink4">Week of {selectedWeekLabel}</span>
+            <span className="text-xs text-ink4 px-1">Week of {selectedWeekLabel}</span>
             <button
               onClick={() => setSelectedMonday(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })}
               disabled={isCurrentWeek}
-              className="text-ink4 hover:text-ink text-sm px-1 leading-none disabled:opacity-30"
+              className="text-ink4 hover:text-ink text-lg w-7 h-7 flex items-center justify-center rounded hover:bg-sand3 transition-colors disabled:opacity-30"
               title="Next week"
             >›</button>
             {!isCurrentWeek && (
               <button
                 onClick={() => setSelectedMonday(getMostRecentMonday(new Date()))}
-                className="text-xs text-accent hover:underline"
+                className="text-xs text-accent hover:underline ml-1"
               >Current week</button>
             )}
             <StaleBadge

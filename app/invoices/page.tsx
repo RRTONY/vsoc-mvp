@@ -346,19 +346,19 @@ export default function InvoicesPage() {
             {/* Invoice period */}
             <div className="flex flex-col gap-1">
               <span className="text-[10px] uppercase tracking-widest text-ink4 font-semibold">Invoice period</span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <input
                   type="date"
                   value={dateFrom}
                   onChange={e => setDateFrom(e.target.value)}
-                  className="field-input text-xs py-1 w-36"
+                  className="field-input text-xs py-1 w-full sm:w-36"
                 />
                 <span className="text-ink4 text-xs">to</span>
                 <input
                   type="date"
                   value={dateTo}
                   onChange={e => setDateTo(e.target.value)}
-                  className="field-input text-xs py-1 w-36"
+                  className="field-input text-xs py-1 w-full sm:w-36"
                 />
               </div>
             </div>
@@ -456,41 +456,41 @@ function InvoiceTable({ invoices, isAdmin, isOwner, actioning, pushing, onStatus
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-sand3 text-left text-xs text-ink4 uppercase tracking-wide">
-            <th className="px-4 py-2 font-medium">Contractor</th>
-            <th className="px-4 py-2 font-medium">Invoice</th>
-            <th className="px-4 py-2 font-medium">Period</th>
-            <th className="px-4 py-2 font-medium text-right">Hours</th>
-            {isOwner  && <th className="px-4 py-2 font-medium text-right">Rate</th>}
-            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium text-right">Amount</th>}
-            <th className="px-4 py-2 font-medium">Status</th>
-            <th className="px-4 py-2 font-medium">Uploaded by</th>
-            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium text-center">ClickUp</th>}
-            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium">Action</th>}
+            <th className="px-4 py-2 font-medium whitespace-nowrap">Contractor</th>
+            <th className="px-4 py-2 font-medium whitespace-nowrap hidden sm:table-cell">Invoice</th>
+            <th className="px-4 py-2 font-medium whitespace-nowrap">Period</th>
+            <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Hours</th>
+            {isOwner  && <th className="px-4 py-2 font-medium text-right whitespace-nowrap hidden md:table-cell">Rate</th>}
+            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium text-right whitespace-nowrap">Amount</th>}
+            <th className="px-4 py-2 font-medium whitespace-nowrap">Status</th>
+            <th className="px-4 py-2 font-medium whitespace-nowrap hidden md:table-cell">Uploaded by</th>
+            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium text-center whitespace-nowrap hidden sm:table-cell">ClickUp</th>}
+            {(isAdmin || isOwner) && <th className="px-4 py-2 font-medium whitespace-nowrap">Action</th>}
           </tr>
         </thead>
         <tbody>
           {invoices.map(inv => (
             <tr key={inv.id} className="border-b border-sand2 hover:bg-sand1 transition-colors">
-              <td className="px-4 py-2 font-medium">{inv.contractor}</td>
-              <td className="px-4 py-2 text-ink3">{inv.invoiceNumber}</td>
-              <td className="px-4 py-2 text-ink3">{inv.period}</td>
-              <td className="px-4 py-2 text-right tabular-nums">{inv.hours}</td>
-              {isOwner  && <td className="px-4 py-2 text-right tabular-nums">${inv.rate}/hr</td>}
+              <td className="px-4 py-2 font-medium whitespace-nowrap">{inv.contractor}</td>
+              <td className="px-4 py-2 text-ink3 whitespace-nowrap hidden sm:table-cell">{inv.invoiceNumber}</td>
+              <td className="px-4 py-2 text-ink3 max-w-[140px] sm:max-w-none truncate">{inv.period}</td>
+              <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap">{inv.hours}</td>
+              {isOwner  && <td className="px-4 py-2 text-right tabular-nums whitespace-nowrap hidden md:table-cell">${inv.rate}/hr</td>}
               {(isAdmin || isOwner) && (
-                <td className="px-4 py-2 text-right tabular-nums font-medium">
+                <td className="px-4 py-2 text-right tabular-nums font-medium whitespace-nowrap">
                   {inv.amount > 0 ? `$${inv.amount.toLocaleString()}` : '—'}
                 </td>
               )}
               <td className="px-4 py-2">
-                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_STYLE[inv.status] ?? STATUS_STYLE.unknown}`}>
+                <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${STATUS_STYLE[inv.status] ?? STATUS_STYLE.unknown}`}>
                   {STATUS_LABEL[inv.status] ?? inv.status}
                 </span>
               </td>
-              <td className="px-4 py-2 text-ink3 text-xs">{inv.uploadedBy ?? '—'}</td>
+              <td className="px-4 py-2 text-ink3 text-xs whitespace-nowrap hidden md:table-cell">{inv.uploadedBy ?? '—'}</td>
 
               {/* ClickUp column */}
               {(isAdmin || isOwner) && (
-                <td className="px-4 py-2 text-center">
+                <td className="px-4 py-2 text-center hidden sm:table-cell">
                   {inv.clickupUrl ? (
                     <a href={inv.clickupUrl} target="_blank" rel="noopener noreferrer"
                        className="text-xs text-blue-600 hover:underline whitespace-nowrap">↗ View</a>
