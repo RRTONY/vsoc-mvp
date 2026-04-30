@@ -1,11 +1,15 @@
 import { getSupabase } from '@/lib/supabase'
 
-export async function buildInvoicesSnapshot() {
+export async function buildInvoicesSnapshot(options?: { username?: string; role?: string }) {
   const sb = getSupabase()
-  const { data, error } = await sb
-    .from('invoices')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let query = sb.from('invoices').select('*').order('created_at', { ascending: false })
+
+  // Non-admin/owner users only see their own invoices
+  if (options?.role === 'user' && options.username) {
+    query = query.eq('for_user', options.username)
+  }
+
+  const { data, error } = await query
 
   if (error) throw new Error(error.message)
 

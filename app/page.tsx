@@ -10,6 +10,23 @@ import { CLICKUP_WORKSPACE_URL, SLACK_WORKSPACE_URL, SLACK_CHANNEL_WEEKLY_REPORT
 
 interface TeamMember { name: string; cuKey: string; role: string; filesReport: boolean }
 interface OKR { id: string; label: string; pct: number; note: string }
+interface WeeklyReportEntry { id: string; submitted_by: string; created_at: string }
+
+function getMostRecentMonday(from: Date): Date {
+  const d = new Date(from)
+  const jsDay = d.getDay()
+  const daysSinceMonday = (jsDay + 6) % 7
+  d.setDate(d.getDate() - daysSinceMonday)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function fmtWeekLabel(mon: Date): string {
+  const fri = new Date(mon)
+  fri.setDate(mon.getDate() + 4)
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${fmt(mon)}–${fmt(fri)}`
+}
 import dynamic from 'next/dynamic'
 const CrmDonut = dynamic(() => import('@/components/charts/CrmDonut'), { ssr: false })
 const OkrRings = dynamic(() => import('@/components/charts/OkrRing'), { ssr: false })
@@ -56,7 +73,7 @@ function TaskRow({ t }: { t: Task }) {
 }
 
 function MemberCard({
-  member, stats, tasks, filed, loading, sparkline,
+  member, stats, tasks, filed, loading, sparkline, reportStatus,
 }: {
   member: TeamMember
   stats: { total: number; overdue: number; urgent: number } | null
@@ -64,12 +81,14 @@ function MemberCard({
   filed: boolean
   loading: boolean
   sparkline?: { date: string; hours: number }[]
+  reportStatus?: 'on-time' | 'late' | null
 }) {
   const [open, setOpen] = useState(false)
   const flow = stats && stats.total > 0
     ? Math.max(5, Math.round(100 - (stats.overdue / stats.total) * 100))
     : null
-  const hasIssues = (stats?.overdue ?? 0) > 0 || (stats?.urgent ?? 0) > 0 || !filed
+  const effectiveFiled = reportStatus !== undefined ? reportStatus !== null : filed
+  const hasIssues = (stats?.overdue ?? 0) > 0 || (stats?.urgent ?? 0) > 0 || !effectiveFiled
 
   const flowColor = flow === null ? '' : flow >= 80 ? 'bg-success' : flow >= 50 ? 'bg-warning' : 'bg-danger'
 
@@ -80,7 +99,7 @@ function MemberCard({
         className="w-full flex items-center gap-3 px-3 sm:px-5 py-3 sm:py-4 text-left hover:bg-sand2 transition-colors rounded-lg"
       >
         {/* Avatar */}
-        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base flex-shrink-0 ${hasIssues ? 'bg-danger text-white' : 'bg-accent-light text-accent'}`}>
+        <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-sm sm:text-base flex-shrink-0 ${hasIssues ? 'bg-danger text-white' : 'bg-accent-light text-accent'}`} title={reportStatus === 'late' ? 'Filed after Friday' : undefined}>
           {member.name[0]}
         </div>
 
@@ -115,9 +134,15 @@ function MemberCard({
             </span>
           )}
           {member.filesReport && (
-            <span className={filed ? 'badge-green' : 'badge-red'}>
-              {filed ? 'Filed' : 'Missing'}
-            </span>
+            reportStatus !== undefined
+              ? reportStatus === 'on-time'
+                ? <span className="badge-green">Filed ✓</span>
+                : reportStatus === 'late'
+                  ? <span className="badge-amber">Filed (late)</span>
+                  : <span className="badge-red">Missing</span>
+              : <span className={filed ? 'badge-green' : 'badge-red'}>
+                  {filed ? 'Filed' : 'Missing'}
+                </span>
           )}
           {stats && (
             <span className="hidden sm:inline text-sm text-ink4">{stats.total} tasks</span>
@@ -165,6 +190,9 @@ export default function DashboardPage() {
   const { refreshKey, freshClickUp } = useRefresh()
   const prevKey = useRef(refreshKey)
   const { isOwner } = useMe()
+  const [selectedMonday, setSelectedMonday] = useState<Date>(() => getMostRecentMonday(new Date()))
+  const [weeklyReports, setWeeklyReports] = useState<WeeklyReportEntry[]>([])
+  const [reportsLoading, setReportsLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/team', { cache: 'no-store' })
@@ -229,15 +257,50 @@ export default function DashboardPage() {
     return () => { cancelled.v = true }
   }, [refreshKey, freshClickUp, load])
 
+  useEffect(() => {
+    setReportsLoading(true)
+    const weekStart = selectedMonday.toISOString().slice(0, 10)
+    fetch(`/api/weekly-reports?week_start=${weekStart}`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then((data: WeeklyReportEntry[]) => {
+        setWeeklyReports(Array.isArray(data) ? data : [])
+        setReportsLoading(false)
+      })
+      .catch(() => setReportsLoading(false))
+  }, [selectedMonday])
+
   const wr = slack?.weeklyReports
   const filed = wr?.filed ?? []
   const missing = wr?.missing ?? []
-  const week = wr?.week ?? '—'
+
+  const currentMonday = getMostRecentMonday(new Date())
+  const isCurrentWeek = selectedMonday.getTime() === currentMonday.getTime()
+  const selectedFriday = new Date(selectedMonday)
+  selectedFriday.setDate(selectedMonday.getDate() + 4)
+  selectedFriday.setHours(23, 59, 59, 999)
+  const selectedWeekLabel = fmtWeekLabel(selectedMonday)
+
+  function getMemberReportStatus(memberName: string): 'on-time' | 'late' | null {
+    const first = memberName.split(' ')[0].toLowerCase()
+    const report = weeklyReports.find(r =>
+      r.submitted_by.toLowerCase().includes(first) ||
+      first.includes(r.submitted_by.toLowerCase().split(' ')[0])
+    )
+    if (!report) return null
+    return new Date(report.created_at) <= selectedFriday ? 'on-time' : 'late'
+  }
+
+  const reportingMembers = team.filter(m => m.filesReport)
+  const pastFiledCount   = reportingMembers.filter(m => getMemberReportStatus(m.name) !== null).length
+  const pastMissingCount = reportingMembers.filter(m => getMemberReportStatus(m.name) === null).length
+  const displayFiled   = isCurrentWeek ? filed.length   : pastFiledCount
+  const displayMissing = isCurrentWeek ? missing.length : pastMissingCount
+  const displayTotal   = reportingMembers.length
 
   // Items needing CEO attention
   const actions: { level: 'red' | 'amber' | 'blue'; text: React.ReactNode }[] = []
   if (!loading) {
-    if (missing.length > 0) actions.push({
+    if (isCurrentWeek && missing.length > 0) actions.push({
       level: 'red',
       text: (
         <span className="flex items-center justify-between gap-2 w-full">
@@ -269,25 +332,35 @@ export default function DashboardPage() {
   const weeklyReportTemplate = [
     `#myweeklyreport`,
     ``,
-    `1. What business outcomes did you drive this week?`,
-    `2. Did you accomplish your top goals from last week? If not, why not?`,
-    `3. Deliverables Authored or Significantly Edited`,
-    `4. Automations built or improved`,
-    `5. Processes Executed`,
-    `6. Automation ROI this week`,
-    `7. Key deals & relationships nurtured`,
-    `8. Help Needed / Dependencies / Blockers`,
-    `9. Most Interesting Thing You Heard / Read This Week`,
-    `10. Top 3-5 Priorities for Next Week`,
-    `11. Win of the Week`,
-    `12. (Optional) Kudos`,
-    `13. (Optional) Friction`,
-    `14. (Optional) What's new with you?`,
+    `1. What is blocked, stuck, or at risk right now?`,
+    `   Format: Blocker → Impact if unresolved → What's needed → From whom`,
+    ``,
+    `2. Is anything broken, behind, or needs to be escalated?`,
+    `   Format: Issue → Current status → Recommended action`,
+    ``,
+    `3. Top 3–5 priorities for next week (in order)`,
+    `   Format: Priority → Definition of done → Owner if team`,
+    ``,
+    `4. Which of last week's priorities did you complete — and what didn't get done, and why?`,
+    `   Format: Priority → Done / Not done → Reason if not done`,
+    ``,
+    `5. Most important accomplishment this week & business impact`,
+    ``,
+    `6. Full list of accomplishments by area`,
+    `   Sales: / Client delivery: / Internal operations: / Other:`,
+    ``,
+    `7. What didn't go well — and what should change because of it?`,
+    ``,
+    `8. What went well that's worth repeating or recognizing?`,
+    ``,
+    `9. What you need from others to support you`,
+    ``,
+    `10. (Optional) Personal notes`,
   ].join('\n')
 
   const shareMsg = [
-    `📊 *CEO Status Brief — Week of ${week}*`,
-    `Reports: ${filed.length}/${team.filter(m => m.filesReport).length} filed${missing.length ? ` · Missing: ${missing.map(n => n.split(' ')[0]).join(', ')}` : ' ✅'}`,
+    `📊 *CEO Status Brief — Week of ${selectedWeekLabel}*`,
+    `Reports: ${displayFiled}/${displayTotal} filed${displayMissing > 0 ? ` · Missing: ${isCurrentWeek ? missing.map(n => n.split(' ')[0]).join(', ') : `${displayMissing} members`}` : ' ✅'}`,
     clickup ? `CRM: ${clickup.overduePercent}% overdue (${clickup.overdue}/${clickup.totalTasks}) · ${clickup.urgent} urgent` : '',
     `_From Visual Chief of Staff_`,
     missing.length ? [
@@ -305,8 +378,25 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between mt-6 mb-4">
         <div>
           <h1 className="font-display text-2xl tracking-widest">CEO COMMAND</h1>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs text-ink4">Week of {week}</span>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <button
+              onClick={() => setSelectedMonday(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })}
+              className="text-ink4 hover:text-ink text-sm px-1 leading-none"
+              title="Previous week"
+            >‹</button>
+            <span className="text-xs text-ink4">Week of {selectedWeekLabel}</span>
+            <button
+              onClick={() => setSelectedMonday(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })}
+              disabled={isCurrentWeek}
+              className="text-ink4 hover:text-ink text-sm px-1 leading-none disabled:opacity-30"
+              title="Next week"
+            >›</button>
+            {!isCurrentWeek && (
+              <button
+                onClick={() => setSelectedMonday(getMostRecentMonday(new Date()))}
+                className="text-xs text-accent hover:underline"
+              >Current week</button>
+            )}
             <StaleBadge
               ageMinutes={(clickup as {_ageMinutes?: number})?._ageMinutes}
               circuitOpen={(clickup as {_circuitOpen?: boolean})?._circuitOpen}
@@ -321,19 +411,29 @@ export default function DashboardPage() {
       {/* Key metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         {/* Reports filed */}
-        <div className={`stat-tile ${loading ? 'animate-pulse' : ''}`}>
-          <div className={`stat-value ${!loading && missing.length > 0 ? 'text-danger' : 'text-success'}`}>
-            {loading ? '—' : `${filed.length}/${team.filter(m => m.filesReport).length}`}
+        <div className={`stat-tile ${loading || reportsLoading ? 'animate-pulse' : ''}`}>
+          <div className={`stat-value ${!loading && displayMissing > 0 ? 'text-danger' : 'text-success'}`}>
+            {loading || reportsLoading ? '—' : `${displayFiled}/${displayTotal}`}
           </div>
           <div className="stat-label">Reports Filed</div>
-          {!loading && (
-            <div className="stat-sub">{missing.length ? `Missing: ${missing.join(', ')}` : 'All filed ✓'}</div>
+          {!loading && !reportsLoading && (
+            <div className="stat-sub">
+              {isCurrentWeek
+                ? missing.length ? `Missing: ${missing.join(', ')}` : 'All filed ✓'
+                : (() => {
+                    const lateCount = reportingMembers.filter(m => getMemberReportStatus(m.name) === 'late').length
+                    if (displayMissing > 0) return `${displayMissing} missing${lateCount > 0 ? ` · ${lateCount} late` : ''}`
+                    if (lateCount > 0) return `All filed · ${lateCount} submitted late`
+                    return 'All filed on time ✓'
+                  })()
+              }
+            </div>
           )}
-          {!loading && (
+          {!loading && !reportsLoading && displayTotal > 0 && (
             <div className="progress-track mt-2">
               <div
-                className={`progress-fill ${missing.length > 0 ? 'bg-danger' : 'bg-success'}`}
-                style={{ width: `${Math.round((filed.length / team.filter(m => m.filesReport).length) * 100)}%` }}
+                className={`progress-fill ${displayMissing > 0 ? 'bg-danger' : 'bg-success'}`}
+                style={{ width: `${Math.round((displayFiled / displayTotal) * 100)}%` }}
               />
             </div>
           )}
@@ -397,9 +497,10 @@ export default function DashboardPage() {
               member={member}
               stats={findStats(clickup?.assigneeStats, member.cuKey)}
               tasks={findTasks(clickup?.tasksByAssignee, member.cuKey)}
-              filed={filed.some((f) => f.toLowerCase().includes(member.cuKey))}
+              filed={isCurrentWeek ? filed.some((f) => f.toLowerCase().includes(member.cuKey)) : false}
               loading={loading}
               sparkline={wwMember?.byDay}
+              reportStatus={!isCurrentWeek ? getMemberReportStatus(member.name) : undefined}
             />
           )
         })}

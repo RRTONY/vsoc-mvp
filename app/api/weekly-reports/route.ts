@@ -147,13 +147,24 @@ export async function GET(req: NextRequest) {
   const role = req.headers.get('x-role')
   if (!role) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  const weekStart = req.nextUrl.searchParams.get('week_start')
+
   const sb = getSupabase()
-  const { data } = await sb
+  let query = sb
     .from('weekly_reports')
     .select('id, submitted_by, week_label, blockers, escalations, priorities, goals_met, win, accomplishments, friction, went_well, support_needed, whats_new, ai_analysis, created_at')
     .order('created_at', { ascending: false })
     .limit(100)
 
+  if (weekStart) {
+    const from = new Date(weekStart)
+    from.setUTCHours(0, 0, 0, 0)
+    const to = new Date(from)
+    to.setUTCDate(to.getUTCDate() + 10) // Mon → Wed+1 of following week, catches late submissions
+    query = query.gte('created_at', from.toISOString()).lte('created_at', to.toISOString())
+  }
+
+  const { data } = await query
   return NextResponse.json(data ?? [])
 }
 
