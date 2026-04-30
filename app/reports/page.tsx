@@ -171,21 +171,38 @@ function MeetingCard({ m }: { m: Meeting }) {
   )
 }
 
-interface SubmittedReport {
+interface WeeklyReportFull {
   id: string
   submitted_by: string
   week_label: string
-  outcomes: string | null
-  goals_met: string | null
-  deliverables: string | null
-  deals_relationships: string | null
-  interesting: string | null
-  priorities: string | null
   blockers: string | null
+  escalations: string | null
+  priorities: string | null
+  goals_met: string | null
   win: string | null
-  kudos: string | null
+  accomplishments: string | null
+  friction: string | null
+  went_well: string | null
+  support_needed: string | null
+  whats_new: string | null
   created_at: string
   ai_analysis: { summary: string; insights: string[]; actions: string[] } | null
+}
+
+function getMostRecentMonday(from: Date): Date {
+  const d = new Date(from)
+  const jsDay = d.getDay()
+  const daysSinceMonday = (jsDay + 6) % 7
+  d.setDate(d.getDate() - daysSinceMonday)
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function fmtWeekLabel(mon: Date): string {
+  const fri = new Date(mon)
+  fri.setDate(mon.getDate() + 4)
+  const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return `${fmt(mon)}–${fmt(fri)}`
 }
 
 function ReportField({ label, value }: { label: string; value: string | null }) {
@@ -198,11 +215,14 @@ function ReportField({ label, value }: { label: string; value: string | null }) 
   )
 }
 
-function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolean }) {
+function WeeklyReportCard({ r, friday, isMine }: { r: WeeklyReportFull; friday: Date; isMine: boolean }) {
   const [open, setOpen] = useState(false)
-  const date = new Date(r.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const submittedAt = new Date(r.created_at)
+  const onTime = submittedAt <= friday
+  const dateStr = submittedAt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+
   return (
-    <div className={`border ${isMine ? 'border-accent/40' : 'border-sand3'}`}>
+    <div className={`border ${isMine ? 'border-accent/50' : onTime ? 'border-sand3' : 'border-amber-300'}`}>
       <button
         onClick={() => setOpen(v => !v)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-sand3/40 transition-colors"
@@ -213,7 +233,10 @@ function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolea
         <div className="flex-1 min-w-0">
           <span className="text-sm font-bold">{r.submitted_by}</span>
           {isMine && <span className="text-[10px] font-bold text-accent ml-2">YOU</span>}
-          <span className="text-xs text-ink3 ml-2">{r.week_label}</span>
+          {onTime
+            ? <span className="text-[10px] font-bold text-green-700 ml-2">On time</span>
+            : <span className="text-[10px] font-bold text-amber-600 ml-2">Late</span>
+          }
         </div>
         {r.win && (
           <span className="text-xs text-ink3 truncate hidden sm:block max-w-xs italic">"{r.win}"</span>
@@ -221,7 +244,7 @@ function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolea
         {r.ai_analysis && (
           <span className="text-[10px] font-bold text-accent border border-accent px-1.5 py-0.5 flex-shrink-0">AI</span>
         )}
-        <span className="text-xs text-ink4 flex-shrink-0">{date}</span>
+        <span className="text-xs text-ink4 flex-shrink-0">{dateStr}</span>
         <span className="text-ink4 text-xs ml-1">{open ? '▲' : '▼'}</span>
       </button>
 
@@ -233,7 +256,7 @@ function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolea
               <p className="text-sm text-ink2 leading-relaxed">{r.ai_analysis.summary}</p>
               {r.ai_analysis.insights?.length > 0 && (
                 <div>
-                  <div className="text-xs font-semibold text-ink3 mb-1">Insights</div>
+                  <div className="text-xs font-semibold text-ink3 mb-1">Key Insights</div>
                   <ul className="space-y-1">
                     {r.ai_analysis.insights.map((ins, i) => (
                       <li key={i} className="text-xs text-ink2 flex gap-2">
@@ -257,15 +280,16 @@ function SubmittedReportCard({ r, isMine }: { r: SubmittedReport; isMine: boolea
               )}
             </div>
           )}
-          <ReportField label="Business Outcomes" value={r.outcomes} />
-          <ReportField label="Goals from Last Week" value={r.goals_met} />
-          <ReportField label="Deliverables" value={r.deliverables} />
-          <ReportField label="Deals & Relationships" value={r.deals_relationships} />
-          <ReportField label="Win of the Week" value={r.win} />
-          <ReportField label="Priorities Next Week" value={r.priorities} />
-          <ReportField label="Blockers" value={r.blockers} />
-          <ReportField label="Most Interesting This Week" value={r.interesting} />
-          <ReportField label="Kudos" value={r.kudos} />
+          <ReportField label="1. Blockers / At Risk" value={r.blockers} />
+          <ReportField label="2. Escalations" value={r.escalations} />
+          <ReportField label="3. Next Week Priorities" value={r.priorities} />
+          <ReportField label="4. Last Week — Done vs. Not Done" value={r.goals_met} />
+          <ReportField label="5. Top Accomplishment & Business Impact" value={r.win} />
+          <ReportField label="6. Full Accomplishments by Area" value={r.accomplishments} />
+          <ReportField label="7. What Didn't Go Well" value={r.friction} />
+          <ReportField label="8. What Went Well" value={r.went_well} />
+          <ReportField label="9. Support Needed from Others" value={r.support_needed} />
+          <ReportField label="10. Personal Notes" value={r.whats_new} />
         </div>
       )}
     </div>
@@ -286,10 +310,10 @@ export default function ReportsPage() {
   const [dailyHistory, setDailyHistory] = useState<DailyReport[]>([])
   const [dailyLoading, setDailyLoading] = useState(false)
   const [generatingReport, setGeneratingReport] = useState(false)
-  const [submittedReports, setSubmittedReports] = useState<SubmittedReport[]>([])
-  const [submittedLoading, setSubmittedLoading] = useState(false)
+  const [weekMon, setWeekMon] = useState<Date>(() => getMostRecentMonday(new Date()))
+  const [weekReports, setWeekReports] = useState<WeeklyReportFull[]>([])
+  const [weekReportsLoading, setWeekReportsLoading] = useState(false)
   const [filterMember, setFilterMember] = useState('')
-  const [filterWeek, setFilterWeek] = useState('')
   const [webworkData, setWebworkData] = useState<{ week: string[]; lastWeek?: string[]; members: WebWorkMember[]; error?: string } | null>(null)
   const [webworkLoading, setWebworkLoading] = useState(false)
   const { refreshKey } = useRefresh()
@@ -343,11 +367,12 @@ export default function ReportsPage() {
     setWebworkLoading(false)
   }
 
-  async function fetchSubmitted() {
-    setSubmittedLoading(true)
-    const res = await fetch('/api/weekly-reports', { cache: 'no-store' }).then(r => r.json()).catch(() => [])
-    setSubmittedReports(Array.isArray(res) ? res : [])
-    setSubmittedLoading(false)
+  async function fetchSubmittedForWeek(mon: Date) {
+    setWeekReportsLoading(true)
+    const weekStart = mon.toISOString().slice(0, 10)
+    const res = await fetch(`/api/weekly-reports?week_start=${weekStart}`, { cache: 'no-store' }).then(r => r.json()).catch(() => [])
+    setWeekReports(Array.isArray(res) ? res : [])
+    setWeekReportsLoading(false)
   }
 
   async function generateNow() {
@@ -366,8 +391,14 @@ export default function ReportsPage() {
   useEffect(() => {
     if (tab === 'daily') fetchDailyHistory()
     if (tab === 'hours') fetchWebwork()
-    if (tab === 'submitted') fetchSubmitted()
+    if (tab === 'submitted') fetchSubmittedForWeek(weekMon)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab])
+
+  useEffect(() => {
+    if (tab === 'submitted') fetchSubmittedForWeek(weekMon)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekMon])
 
   useEffect(() => {
     if (refreshKey === prevKey.current) return
@@ -435,92 +466,138 @@ export default function ReportsPage() {
 
       {/* ── SUBMITTED REPORTS TAB ───────────────────────────── */}
       {tab === 'submitted' && (() => {
-        const weeks = Array.from(new Set(submittedReports.map(r => r.week_label))).slice(0, 12)
-        const latestWeek = weeks[0] ?? ''
-        const latestSubmitters = new Set(submittedReports.filter(r => r.week_label === latestWeek).map(r => r.submitted_by))
-        const filtered = submittedReports.filter(r =>
-          (!filterMember || r.submitted_by === filterMember) &&
-          (!filterWeek || r.week_label === filterWeek)
+        const currentMonday = getMostRecentMonday(new Date())
+        const isCurrentWeek = weekMon.getTime() === currentMonday.getTime()
+        const weekFriday = new Date(weekMon)
+        weekFriday.setDate(weekMon.getDate() + 4)
+        weekFriday.setHours(23, 59, 59, 999)
+
+        const filtered = weekReports.filter(r =>
+          !filterMember || r.submitted_by === filterMember
         )
+        // On-time first, then late
+        const sorted = [...filtered].sort((a, b) => {
+          const aOnTime = new Date(a.created_at) <= weekFriday ? 0 : 1
+          const bOnTime = new Date(b.created_at) <= weekFriday ? 0 : 1
+          return aOnTime - bOnTime
+        })
+
+        const submittedNames = new Set(weekReports.map(r => r.submitted_by))
+        const onTimeCount = weekReports.filter(r => new Date(r.created_at) <= weekFriday).length
+        const lateCount   = weekReports.length - onTimeCount
+        const missingCount = reportMembers.filter(n => !submittedNames.has(n)).length
+
         return (
           <div className="space-y-4">
-            {submittedLoading ? (
-              <div className="text-ink4 text-sm animate-pulse">Loading reports…</div>
-            ) : submittedReports.length === 0 ? (
+            {/* Week navigation */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setWeekMon(d => { const n = new Date(d); n.setDate(n.getDate() - 7); return n })}
+                className="text-ink4 hover:text-ink text-lg px-2 leading-none font-light"
+                title="Previous week"
+              >‹</button>
+              <span className="text-sm font-semibold tabular-nums">{fmtWeekLabel(weekMon)}</span>
+              <button
+                onClick={() => setWeekMon(d => { const n = new Date(d); n.setDate(n.getDate() + 7); return n })}
+                disabled={isCurrentWeek}
+                className="text-ink4 hover:text-ink text-lg px-2 leading-none font-light disabled:opacity-30"
+                title="Next week"
+              >›</button>
+              {!isCurrentWeek && (
+                <button
+                  onClick={() => setWeekMon(getMostRecentMonday(new Date()))}
+                  className="text-xs text-accent hover:underline ml-1"
+                >
+                  Current week
+                </button>
+              )}
+              <div className="ml-auto flex gap-3 text-xs text-ink4">
+                {onTimeCount > 0 && <span className="text-green-700 font-semibold">{onTimeCount} on time</span>}
+                {lateCount > 0   && <span className="text-amber-600 font-semibold">{lateCount} late</span>}
+                {missingCount > 0 && <span className="text-red-600 font-semibold">{missingCount} missing</span>}
+              </div>
+            </div>
+
+            {/* Member status chips */}
+            <div className="card">
+              <div className="card-hd">
+                <div className="card-ti">
+                  {isCurrentWeek ? 'This Week' : fmtWeekLabel(weekMon)}
+                </div>
+                <div className="text-xs text-ink3">
+                  {weekReportsLoading ? 'Loading…' : `${weekReports.length} of ${reportMembers.length} submitted`}
+                </div>
+              </div>
+              <div className="card-body p-3">
+                <div className="flex flex-wrap gap-2">
+                  {reportMembers.map(name => {
+                    const report = weekReports.find(r => r.submitted_by === name)
+                    const onTime = report ? new Date(report.created_at) <= weekFriday : null
+                    return (
+                      <button
+                        key={name}
+                        onClick={() => setFilterMember(filterMember === name ? '' : name)}
+                        className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border transition-colors ${
+                          filterMember === name
+                            ? 'border-ink bg-ink text-white'
+                            : report === undefined
+                            ? 'border-sand3 text-ink4 bg-sand2 hover:border-ink3'
+                            : onTime
+                            ? 'border-green-600 text-green-800 bg-green-50 hover:bg-green-100'
+                            : 'border-amber-400 text-amber-800 bg-amber-50 hover:bg-amber-100'
+                        }`}
+                        title={report ? (onTime ? 'Filed on time' : 'Filed late') : 'Not submitted'}
+                      >
+                        <span>{report ? (onTime ? '✓' : '~') : '✗'}</span>
+                        <span>{name.split(' ')[0]}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+                {reportMembers.filter(n => !submittedNames.has(n)).length > 0 && !weekReportsLoading && (
+                  <p className="text-xs text-red-600 mt-2">
+                    Missing: {reportMembers.filter(n => !submittedNames.has(n)).map(n => n.split(' ')[0]).join(', ')}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Member filter + count */}
+            {weekReports.length > 0 && (
+              <div className="flex flex-wrap gap-2 items-center">
+                <select
+                  value={filterMember}
+                  onChange={e => setFilterMember(e.target.value)}
+                  className="field-input text-xs py-1.5 w-full sm:w-auto"
+                >
+                  <option value="">All members</option>
+                  {reportMembers.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+                {filterMember && (
+                  <button onClick={() => setFilterMember('')} className="text-xs text-ink4 hover:text-ink underline">
+                    Clear
+                  </button>
+                )}
+                <span className="text-xs text-ink4 ml-auto">{sorted.length} report{sorted.length !== 1 ? 's' : ''}</span>
+              </div>
+            )}
+
+            {/* Report cards */}
+            {weekReportsLoading ? (
+              <div className="text-ink4 text-sm animate-pulse py-4">Loading reports…</div>
+            ) : sorted.length === 0 ? (
               <div className="card p-6 text-center text-ink4 text-sm">
-                No submitted reports yet. Team members can submit via the Submit Report tab.
+                {filterMember
+                  ? `${filterMember} has not submitted a report for this week.`
+                  : `No reports submitted for the week of ${fmtWeekLabel(weekMon)}.`
+                }
               </div>
             ) : (
-              <>
-                {/* Summary grid — latest week */}
-                {latestWeek && (
-                  <div className="card">
-                    <div className="card-hd">
-                      <div className="card-ti">This Week — {latestWeek}</div>
-                      <div className="text-xs text-ink3">{latestSubmitters.size} of {reportMembers.length} submitted</div>
-                    </div>
-                    <div className="card-body p-3">
-                      <div className="flex flex-wrap gap-2">
-                        {reportMembers.map(name => {
-                          const filed = latestSubmitters.has(name)
-                          return (
-                            <button
-                              key={name}
-                              onClick={() => setFilterMember(filterMember === name ? '' : name)}
-                              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold border transition-colors ${
-                                filterMember === name
-                                  ? 'border-ink bg-ink text-white'
-                                  : filed
-                                  ? 'border-green-600 text-green-800 bg-green-50 hover:bg-green-100'
-                                  : 'border-sand3 text-ink4 bg-sand2 hover:border-ink3'
-                              }`}
-                            >
-                              <span>{filed ? '✓' : '✗'}</span>
-                              <span>{name.split(' ')[0]}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Filter bar */}
-                <div className="flex flex-wrap gap-2 items-center">
-                  <select
-                    value={filterMember}
-                    onChange={e => setFilterMember(e.target.value)}
-                    className="field-input text-xs py-1.5 w-full sm:w-auto"
-                  >
-                    <option value="">All members</option>
-                    {reportMembers.map(n => <option key={n} value={n}>{n}</option>)}
-                  </select>
-                  <select
-                    value={filterWeek}
-                    onChange={e => setFilterWeek(e.target.value)}
-                    className="field-input text-xs py-1.5 w-full sm:w-auto"
-                  >
-                    <option value="">All weeks</option>
-                    {weeks.map(w => <option key={w} value={w}>{w}</option>)}
-                  </select>
-                  {(filterMember || filterWeek) && (
-                    <button
-                      onClick={() => { setFilterMember(''); setFilterWeek('') }}
-                      className="text-xs text-ink4 hover:text-ink underline"
-                    >
-                      Clear
-                    </button>
-                  )}
-                  <span className="text-xs text-ink4 ml-auto">{filtered.length} report{filtered.length !== 1 ? 's' : ''}</span>
-                </div>
-
-                {/* Report list */}
-                {filtered.length === 0 ? (
-                  <div className="text-sm text-ink4 py-4 text-center">No reports match the selected filters.</div>
-                ) : (
-                  filtered.map(r => <SubmittedReportCard key={r.id} r={r} isMine={me?.username === r.submitted_by} />)
-                )}
-              </>
+              <div className="space-y-2">
+                {sorted.map(r => (
+                  <WeeklyReportCard key={r.id} r={r} friday={weekFriday} isMine={me?.username === r.submitted_by} />
+                ))}
+              </div>
             )}
           </div>
         )

@@ -418,15 +418,13 @@ export default function DashboardPage() {
           <div className="stat-label">Reports Filed</div>
           {!loading && !reportsLoading && (
             <div className="stat-sub">
-              {isCurrentWeek
-                ? missing.length ? `Missing: ${missing.join(', ')}` : 'All filed ✓'
-                : (() => {
-                    const lateCount = reportingMembers.filter(m => getMemberReportStatus(m.name) === 'late').length
-                    if (displayMissing > 0) return `${displayMissing} missing${lateCount > 0 ? ` · ${lateCount} late` : ''}`
-                    if (lateCount > 0) return `All filed · ${lateCount} submitted late`
-                    return 'All filed on time ✓'
-                  })()
-              }
+              {(() => {
+                const lateCount = reportingMembers.filter(m => getMemberReportStatus(m.name) === 'late').length
+                if (displayMissing > 0) return `${displayMissing} missing${lateCount > 0 ? ` · ${lateCount} late` : ''}`
+                if (lateCount > 0) return `All filed · ${lateCount} submitted late`
+                if (displayFiled > 0) return 'All filed on time ✓'
+                return isCurrentWeek && missing.length > 0 ? `Missing: ${missing.join(', ')}` : '—'
+              })()}
             </div>
           )}
           {!loading && !reportsLoading && displayTotal > 0 && (
@@ -500,7 +498,7 @@ export default function DashboardPage() {
               filed={isCurrentWeek ? filed.some((f) => f.toLowerCase().includes(member.cuKey)) : false}
               loading={loading}
               sparkline={wwMember?.byDay}
-              reportStatus={!isCurrentWeek ? getMemberReportStatus(member.name) : undefined}
+              reportStatus={getMemberReportStatus(member.name) ?? undefined}
             />
           )
         })}

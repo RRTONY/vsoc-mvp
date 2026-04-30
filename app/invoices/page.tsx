@@ -41,20 +41,22 @@ function toYMD(d: Date) {
 }
 
 // Extract a YYYY-MM-DD start date from the invoice period text for accurate filtering.
-// Falls back to empty string if the period is unrecognisable.
+// Returns empty string when the period is unrecognisable (caller should include the
+// invoice rather than filtering it out).
 function periodStartDate(period: string): string {
-  // "2026-03-01 to 2026-03-15"
-  const iso = period.match(/^(\d{4}-\d{2}-\d{2})/)
+  if (!period) return ''
+  // "2026-03-01 to 2026-03-15"  OR  "2026-03-01 / 2026-03-15"  OR just "2026-03-01"
+  const iso = period.match(/(\d{4}-\d{2}-\d{2})/)
   if (iso) return iso[1]
-  // "Hours March 1-15, 2026" / "Hours Mar 1–15, 2026"
+  // "Hours March 1-15, 2026" / "Mar 1 – 15, 2026" / "March 2026"
   const months: Record<string, string> = {
     jan:'01', feb:'02', mar:'03', apr:'04', may:'05', jun:'06',
     jul:'07', aug:'08', sep:'09', oct:'10', nov:'11', dec:'12',
   }
-  const m = period.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d+)[^\d].*?(\d{4})/i)
+  const m = period.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s,]+(\d{1,2})?[^\d]*(\d{4})/i)
   if (m) {
     const mo = months[m[1].toLowerCase().slice(0, 3)]
-    const day = m[2].padStart(2, '0')
+    const day = (m[2] ?? '1').padStart(2, '0')
     return `${m[3]}-${mo}-${day}`
   }
   return ''
@@ -195,12 +197,15 @@ export default function InvoicesPage() {
   const activeContractors = Array.from(new Set(active.map(inv => inv.contractor))).sort()
   const paidContractors   = Array.from(new Set(paid.map(inv => inv.contractor))).sort()
 
-  // Apply past filters — filter by invoice period date, fall back to upload date
+  // Apply past filters — filter by invoice period date only.
+  // If the period can't be parsed we have no reliable date; include the invoice rather
+  // than accidentally hiding it by using the upload date as a proxy.
   const visiblePaid = paid.filter(inv => {
-    const d = periodStartDate(inv.period) || inv.parsedAt?.slice(0, 10) || ''
+    if (contractorFilter && inv.contractor !== contractorFilter) return false
+    const d = periodStartDate(inv.period)
+    if (!d) return true   // unknown period — always include
     if (dateFrom && d < dateFrom) return false
     if (dateTo   && d > dateTo)   return false
-    if (contractorFilter && inv.contractor !== contractorFilter) return false
     return true
   })
 
